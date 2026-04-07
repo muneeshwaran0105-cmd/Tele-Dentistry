@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teledentistry Portal - Consultant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            blue: '#4A90E2',
+                            dark: '#2C3E50',
+                            light: '#ECF0F1',
+                            white: '#FFFFFF',
+                            green: '#27AE60',
+                            red: '#E74C3C',
+                            gray: '#BDC3C7'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<!--
+  On mobile: body is a flex column; main scrolls vertically.
+  On desktop (lg+): body is full-screen, overflow-hidden so nothing scrolls.
+-->
+<body class="text-medical-dark flex flex-col min-h-screen lg:h-screen lg:overflow-hidden">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="bg-white shadow-md py-3 px-4 sm:px-6 fixed w-full top-0 z-50 border-b border-gray-200 shrink-0">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <span class="material-icons text-medical-blue text-2xl sm:text-3xl">medical_services</span>
+                <h1 class="text-lg sm:text-2xl font-semibold tracking-tight">
+                    Teledentistry
+                    <span class="text-gray-500 text-base sm:text-2xl font-light hidden sm:inline"> - Consultant</span>
+                </h1>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── Connection Panel (below header, full-width) ──────────────────── -->
+    <div class="fixed top-[57px] sm:top-[65px] w-full z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3">
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
+                <div class="flex gap-2 flex-1">
+                    <input type="text" id="roomId"
+                           placeholder="Room ID"
+                           class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-medical-blue font-mono text-sm shadow-sm">
+                    <input type="text" id="roomPin"
+                           placeholder="4-Digit PIN"
+                           maxlength="4"
+                           class="w-28 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-medical-blue text-center font-mono text-sm tracking-widest shadow-sm">
+                </div>
+                <button id="joinRoomBtn"
+                        class="sm:shrink-0 bg-medical-blue hover:bg-blue-600 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-sm flex items-center justify-center space-x-1.5 text-sm">
+                    <span class="material-icons text-base">login</span>
+                    <span>Join Room</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Main Content Focus Mode Layout ───────────────────────────────── -->
+    <!--
+        Mobile:  flex-col, scrollable, extra pb so PiP strip isn't clipped
+        Desktop: flex-row side-by-side, fills remaining height
+    -->
+    <main class="flex-grow
+                 pt-[135px] sm:pt-[125px]
+                 pb-4
+                 px-4
+                 w-full
+                 flex flex-col lg:flex-row
+                 gap-4
+                 mx-auto max-w-screen-2xl
+                 lg:h-screen lg:overflow-hidden">
+
+        <!-- Large Central Video Feed -->
+        <div id="mainFeed"
+             class="bg-slate-900 rounded-xl shadow-lg border border-gray-200 flex flex-col relative
+                    min-h-[45vw] sm:min-h-[40vh]
+                    lg:flex-grow lg:h-full lg:overflow-hidden
+                    order-1 lg:order-none">
+
+            <!-- Label overlay -->
+            <div class="absolute top-3 left-3 z-10 bg-black/50 text-white px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium backdrop-blur-md flex items-center space-x-2 border border-white/10">
+                <span class="material-icons text-xs sm:text-sm text-green-400">camera_enhance</span>
+                <span id="mainFeedLabel">Active Focus Feed (Intraoral)</span>
+            </div>
+
+            <!-- Main Video Placeholder — webrtc.js injects <video> here -->
+            <div id="mainVideoContainer" class="flex-grow flex items-center justify-center relative w-full h-full">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 pointer-events-none" id="mainFeedOverlay">
+                    <span class="material-icons text-5xl sm:text-6xl mb-3 opacity-40">visibility</span>
+                    <p class="text-base sm:text-lg font-medium opacity-70">Waiting for primary stream...</p>
+                </div>
+            </div>
+
+            <!-- Main Stream Controls Overlay -->
+            <div class="absolute bottom-4 right-4 z-10 flex space-x-2 sm:space-x-3">
+                <button id="snapshotBtn"
+                        class="bg-white/10 hover:bg-white/25 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-md transition-colors shadow-lg border border-white/10"
+                        title="Take Snapshot">
+                    <span class="material-icons text-lg sm:text-xl">camera_alt</span>
+                </button>
+                <button id="fullscreenBtn"
+                        class="bg-white/10 hover:bg-white/25 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-md transition-colors shadow-lg border border-white/10"
+                        title="Fullscreen">
+                    <span class="material-icons text-lg sm:text-xl">fullscreen</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sidebar / Bottom PiP feeds — extra slots appended here by webrtc.js -->
+        <!--
+            Mobile:  horizontal scroll strip at bottom
+            Desktop: vertical sidebar on the right
+        -->
+        <div id="pipSidebar"
+             class="flex lg:flex-col
+                    shrink-0
+                    lg:w-64 xl:w-72
+                    gap-3
+                    overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto
+                    w-full lg:h-full lg:max-h-full
+                    py-1
+                    order-2 lg:order-none">
+
+            <!-- Sub Feed 1 (PC) — slot 0, webrtc.js injects <video> here -->
+            <div id="pipSlot0" data-pip-label="Provider PC"
+                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
+                        shrink-0 w-40 sm:w-56 lg:w-full
+                        aspect-video lg:aspect-auto lg:flex-grow
+                        transition-all cursor-pointer group">
+                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
+                    <span class="font-medium text-gray-200">Provider PC</span>
+                    <span id="pipDot0" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                </div>
+                <div id="pipVideo0" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
+                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">personal_video</span>
+                </div>
+            </div>
+
+            <!-- Sub Feed 2 (Mobile / Alternate) — slot 1 -->
+            <div id="pipSlot1" data-pip-label="Mobile Cam"
+                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
+                        shrink-0 w-40 sm:w-56 lg:w-full
+                        aspect-video lg:aspect-auto lg:flex-grow
+                        transition-all cursor-pointer group">
+                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
+                    <span class="font-medium text-gray-200">Mobile Cam</span>
+                    <span id="pipDot1" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                </div>
+                <div id="pipVideo1" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
+                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">smartphone</span>
+                </div>
+            </div>
+
+            <!-- Sub Feed 3 (USB/Extra) — slot 2 -->
+            <div id="pipSlot2" data-pip-label="USB Aux Cam"
+                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
+                        shrink-0 w-40 sm:w-56 lg:w-full
+                        aspect-video lg:aspect-auto lg:flex-grow
+                        transition-all cursor-pointer group">
+                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
+                    <span class="font-medium text-gray-200">USB Aux Cam</span>
+                    <span id="pipDot2" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                </div>
+                <div id="pipVideo2" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
+                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">usb</span>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Phase 4: WebRTC + WebSocket Integration -->
+    <script src="webrtc.js"></script>
+</body>
+</html>
