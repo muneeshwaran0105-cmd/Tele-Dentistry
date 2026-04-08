@@ -279,8 +279,13 @@ function getOrCreatePeerConnection(remotePeerId) {
     };
   }
 
-  // ── SUPERIOR: add local consultant tracks + receive Provider feeds ─
+  // ── SUPERIOR (Consultant): add local tracks + receive Provider feeds ─
   if (role === 'superior') {
+    // Phase 14: Force the connection to negotiate bidirectional media lines
+    // safely, before `addConsultantTracksToConnection` modifies them.
+    pc.addTransceiver('audio', { direction: 'sendrecv' });
+    pc.addTransceiver('video', { direction: 'sendrecv' });
+
     // Phase 8: Add consultant's local camera/mic tracks to this connection
     addConsultantTracksToConnection(pc);
 
@@ -322,12 +327,17 @@ function addDentistTracksToConnection(pc) {
 function addConsultantTracksToConnection(pc) {
   if (!localConsultantStream) return;
 
-  const existingTrackIds = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
-
   localConsultantStream.getTracks().forEach(track => {
-    if (!existingTrackIds.has(track.id)) {
+    // Check if a transceiver already exists for this track kind
+    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === track.kind);
+    if (transceiver) {
+      if (transceiver.sender.track !== track) {
+        transceiver.sender.replaceTrack(track);
+        log('Consultant track (transceiver) replaced:', track.kind);
+      }
+    } else {
       pc.addTrack(track, localConsultantStream);
-      log('Consultant track added:', track.kind, track.label);
+      log('Consultant track added:', track.kind);
     }
   });
 }
