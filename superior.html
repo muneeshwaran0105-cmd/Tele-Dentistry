@@ -6,21 +6,29 @@
     <title>Teledentistry Portal - Consultant</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
                     colors: {
                         medical: {
-                            blue: '#4A90E2',
-                            dark: '#2C3E50',
-                            light: '#ECF0F1',
+                            blue: '#3b82f6',
+                            dark: '#0f172a',
+                            light: '#f8fafc',
                             white: '#FFFFFF',
-                            green: '#27AE60',
-                            red: '#E74C3C',
-                            gray: '#BDC3C7'
+                            green: '#10b981',
+                            red: '#ef4444',
+                            gray: '#cbd5e1'
                         }
                     }
                 }
@@ -29,165 +37,241 @@
     </script>
     <style>
         body { font-family: 'Inter', system-ui, sans-serif; background-color: #f8fafc; }
+        /* Scrollbar styles for pure modern feel */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
-<!--
-  On mobile: body is a flex column; main scrolls vertically.
-  On desktop (lg+): body is full-screen, overflow-hidden so nothing scrolls.
--->
-<body class="text-medical-dark flex flex-col min-h-screen lg:h-screen lg:overflow-hidden">
+<body class="text-slate-800 flex flex-col h-screen overflow-hidden">
 
-    <!-- ── Header ──────────────────────────────────────────────────────── -->
-    <header class="bg-white shadow-md py-3 px-4 sm:px-6 fixed w-full top-0 z-50 border-b border-gray-200 shrink-0">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2 sm:space-x-3">
-                <span class="material-icons text-medical-blue text-2xl sm:text-3xl">medical_services</span>
-                <h1 class="text-lg sm:text-2xl font-semibold tracking-tight">
+    <!-- ── Header & Connection Bar ──────────────────────────────────────── -->
+    <header class="bg-white border-b border-slate-200 shrink-0 z-50">
+        <!-- Top Branding -->
+        <div class="border-b border-slate-100 bg-white/90 backdrop-blur-md px-4 sm:px-6 py-2.5 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-50 p-1.5 sm:p-2 rounded-xl text-medical-blue">
+                    <i class="fa-solid fa-stethoscope sm:text-xl"></i>
+                </div>
+                <h1 class="text-lg sm:text-2xl font-bold tracking-tight text-slate-800">
                     Teledentistry
-                    <span class="text-gray-500 text-base sm:text-2xl font-light hidden sm:inline"> - Consultant</span>
+                    <span class="text-slate-400 font-normal hidden sm:inline ml-2 border-l border-slate-300 pl-3 text-lg">Consultant Dashboard</span>
                 </h1>
+            </div>
+            
+            <!-- Connection Status -->
+            <div id="connectionStatus" class="hidden items-center space-x-2 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-full shadow-sm">
+                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse relative">
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
+                </span>
+                <span class="text-xs sm:text-sm font-semibold text-emerald-700 tracking-wide" id="statusText">Connected</span>
+            </div>
+            <!-- Mobile Sidebar Toggle -->
+            <button id="sidebarToggleBtn" class="xl:hidden text-slate-500 hover:text-medical-blue transition-colors px-2">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Connection Panel -->
+        <div class="bg-slate-50 px-4 sm:px-6 py-2.5 flex flex-col sm:flex-row gap-3 items-center shadow-inner">
+            <div class="flex gap-3 flex-1 w-full max-w-sm">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-globe text-slate-400"></i>
+                    </div>
+                    <input type="text" id="roomId" placeholder="Room ID"
+                           class="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-blue text-sm shadow-sm transition-colors">
+                </div>
+                <div class="relative w-28">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-lock text-slate-400"></i>
+                    </div>
+                    <input type="text" id="roomPin" placeholder="PIN" maxlength="4"
+                           class="w-full pl-9 pr-2 py-1.5 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-blue text-center font-mono text-sm tracking-widest shadow-sm transition-colors">
+                </div>
+            </div>
+            <button id="joinRoomBtn"
+                    class="w-full sm:w-auto bg-medical-blue hover:bg-blue-600 text-white px-5 py-1.5 rounded-lg font-medium shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 text-sm transition-all transform hover:-translate-y-0.5 active:translate-y-0">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Secure Join</span>
+            </button>
+            <div class="ml-auto hidden xl:block text-xs font-semibold text-slate-400 tracking-wider">
+                <i class="fa-regular fa-clock mr-1"></i> LIVE CONSULTATION
             </div>
         </div>
     </header>
 
-    <!-- ── Connection Panel (below header, full-width) ──────────────────── -->
-    <div class="fixed top-[57px] sm:top-[65px] w-full z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
-                <div class="flex gap-2 flex-1">
-                    <input type="text" id="roomId"
-                           placeholder="Room ID"
-                           class="flex-1 min-w-0 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-medical-blue font-mono text-sm shadow-sm">
-                    <input type="text" id="roomPin"
-                           placeholder="4-Digit PIN"
-                           maxlength="4"
-                           class="w-28 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-medical-blue text-center font-mono text-sm tracking-widest shadow-sm">
-                </div>
-                <button id="joinRoomBtn"
-                        class="sm:shrink-0 bg-medical-blue hover:bg-blue-600 text-white px-5 py-2 rounded-md font-medium transition-colors shadow-sm flex items-center justify-center space-x-1.5 text-sm">
-                    <span class="material-icons text-base">login</span>
-                    <span>Join Room</span>
+    <!-- ── 3-Column Clinical Layout ─────────────────────────────────────── -->
+    <main class="flex-grow flex flex-col xl:flex-row w-full h-[calc(100vh-115px)] bg-slate-100/50 p-3 sm:p-4 gap-4">
+
+        <!-- Left Column: Session Details (20%) -->
+        <aside id="leftSidebar" class="hidden xl:flex flex-col w-full xl:w-1/5 h-full bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden shrink-0 absolute xl:relative z-40 inset-0 xl:inset-auto m-3 xl:m-0">
+            <div class="bg-gradient-to-r from-slate-50 to-white py-3 px-4 border-b border-slate-100 flex justify-between items-center shrink-0">
+                <h2 class="font-medium text-slate-700 flex items-center space-x-2 text-sm">
+                    <i class="fa-regular fa-folder-open text-medical-blue"></i>
+                    <span>Session Notes</span>
+                </h2>
+                <button class="xl:hidden text-slate-400 hover:text-red-500" onclick="document.getElementById('leftSidebar').classList.add('hidden')">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-        </div>
-    </div>
+            <div class="flex-grow flex flex-col p-4 space-y-4 overflow-y-auto">
+                <div class="flex flex-col space-y-1.5 h-1/2">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Patient Notes</label>
+                    <textarea class="flex-grow w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-medical-blue focus:bg-white transition-colors resize-none shadow-inner" placeholder="Document clinical findings here..."></textarea>
+                </div>
+                <div class="flex flex-col space-y-1.5 flex-grow">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Event Log</label>
+                    <div id="eventLog" class="flex-grow w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-[11px] font-mono overflow-y-auto shadow-inner text-slate-300">
+                        <!-- Events populated by ui.js appendEventLog -->
+                        <div class="text-slate-500">System initialized... Ready to join.</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-    <!-- ── Main Content Focus Mode Layout ───────────────────────────────── -->
-    <!--
-        Mobile:  flex-col, scrollable, extra pb so PiP strip isn't clipped
-        Desktop: flex-row side-by-side, fills remaining height
-    -->
-    <main class="flex-grow
-                 pt-[135px] sm:pt-[125px]
-                 pb-4
-                 px-4
-                 w-full
-                 flex flex-col lg:flex-row
-                 gap-4
-                 mx-auto max-w-screen-2xl
-                 lg:h-screen lg:overflow-hidden">
+        <!-- Center Column: Focus View (60%) -->
+        <section id="mainFeed" class="flex-grow xl:w-3/5 h-full bg-black rounded-2xl shadow-xl border border-slate-800 overflow-hidden relative group isolate transition-all duration-300">
 
-        <!-- Large Central Video Feed -->
-        <div id="mainFeed"
-             class="bg-slate-900 rounded-xl shadow-lg border border-gray-200 flex flex-col relative
-                    min-h-[45vw] sm:min-h-[40vh]
-                    lg:flex-grow lg:h-full lg:overflow-hidden
-                    order-1 lg:order-none">
-
-            <!-- Label overlay -->
-            <div class="absolute top-3 left-3 z-10 bg-black/50 text-white px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium backdrop-blur-md flex items-center space-x-2 border border-white/10">
-                <span class="material-icons text-xs sm:text-sm text-green-400">camera_enhance</span>
-                <span id="mainFeedLabel">Active Focus Feed (Intraoral)</span>
+            <!-- Device Label Overlay (Top-Left) -->
+            <div class="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-white/10 flex items-center space-x-2 shadow-lg">
+                <span class="relative flex h-2.5 w-2.5 mr-1">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                </span>
+                <span id="mainFeedLabel">Active Focus Feed</span>
             </div>
 
-            <!-- Main Video Placeholder — webrtc.js injects <video> here -->
-            <div id="mainVideoContainer" class="flex-grow flex items-center justify-center relative w-full h-full">
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 pointer-events-none" id="mainFeedOverlay">
-                    <span class="material-icons text-5xl sm:text-6xl mb-3 opacity-40">visibility</span>
-                    <p class="text-base sm:text-lg font-medium opacity-70">Waiting for primary stream...</p>
+            <!-- Fullscreen Overlay (Top-Right) -->
+            <button id="fullscreenBtn" class="absolute top-4 right-4 z-20 bg-black/40 hover:bg-black/60 text-white w-9 h-9 flex items-center justify-center rounded-lg backdrop-blur-md transition-all border border-white/10 opacity-0 group-hover:opacity-100 shadow-lg" title="Fullscreen">
+                <i class="fa-solid fa-expand text-sm"></i>
+            </button>
+
+            <!-- Video Container -->
+            <div id="mainVideoContainer" class="absolute inset-0 flex items-center justify-center w-full h-full">
+                <div id="mainFeedOverlay" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 pointer-events-none bg-slate-900">
+                    <i class="fa-solid fa-eye text-5xl sm:text-6xl mb-4 opacity-40"></i>
+                    <p class="text-base sm:text-lg font-medium opacity-80 tracking-wide text-slate-300">Awaiting primary stream connection</p>
                 </div>
             </div>
 
-            <!-- Main Stream Controls Overlay -->
-            <div class="absolute bottom-4 right-4 z-10 flex space-x-2 sm:space-x-3">
-                <button id="snapshotBtn"
-                        class="bg-white/10 hover:bg-white/25 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-md transition-colors shadow-lg border border-white/10"
-                        title="Take Snapshot">
-                    <span class="material-icons text-lg sm:text-xl">camera_alt</span>
-                </button>
-                <button id="fullscreenBtn"
-                        class="bg-white/10 hover:bg-white/25 text-white p-2.5 sm:p-3 rounded-full backdrop-blur-md transition-colors shadow-lg border border-white/10"
-                        title="Fullscreen">
-                    <span class="material-icons text-lg sm:text-xl">fullscreen</span>
-                </button>
-            </div>
-        </div>
+            <!-- Custom 📸 Capture Frame Button (Bottom-Left) -->
+            <button id="snapshotBtn" class="absolute bottom-6 left-6 z-20 bg-medical-blue hover:bg-blue-500 text-white pl-4 pr-5 py-2.5 rounded-full backdrop-blur-md transition-all shadow-xl shadow-blue-500/30 flex items-center space-x-2 transform hover:-translate-y-1 hover:scale-105 active:scale-95 group/btn">
+                <i class="fa-solid fa-camera text-lg group-hover/btn:animate-pulse"></i>
+                <span class="text-sm font-semibold tracking-wide">Capture Frame</span>
+            </button>
 
-        <!-- Sidebar / Bottom PiP feeds — extra slots appended here by webrtc.js -->
-        <!--
-            Mobile:  horizontal scroll strip at bottom
-            Desktop: vertical sidebar on the right
-        -->
-        <div id="pipSidebar"
-             class="flex lg:flex-col
-                    shrink-0
-                    lg:w-64 xl:w-72
-                    gap-3
-                    overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto
-                    w-full lg:h-full lg:max-h-full
-                    py-1
-                    order-2 lg:order-none">
+        </section>
 
-            <!-- Sub Feed 1 (PC) — slot 0, webrtc.js injects <video> here -->
+        <!-- Right Column: PiP Stack (20%) -->
+        <aside id="pipSidebar" class="flex flex-row xl:flex-col w-full xl:w-1/5 xl:h-full gap-3 overflow-x-auto xl:overflow-x-hidden xl:overflow-y-auto pb-2 xl:pb-0 shrink-0">
+
+            <!-- Sub Feed 1 (PC) -->
             <div id="pipSlot0" data-pip-label="Provider PC"
-                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
-                        shrink-0 w-40 sm:w-56 lg:w-full
-                        aspect-video lg:aspect-auto lg:flex-grow
-                        transition-all cursor-pointer group">
-                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
-                    <span class="font-medium text-gray-200">Provider PC</span>
-                    <span id="pipDot0" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
+                
+                <div id="pipVideo0" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <i class="fa-solid fa-desktop text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
-                <div id="pipVideo0" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
-                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">personal_video</span>
+                
+                <!-- New Overlay Label Style (Bottom-Left) -->
+                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
+                    <span class="text-[10px] font-semibold tracking-wide">Provider PC</span>
+                </div>
+                
+                <!-- Status Dot (Top-Right) -->
+                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
+                    <span id="pipDot0" class="block h-2 w-2 rounded-full bg-slate-500"></span>
                 </div>
             </div>
 
-            <!-- Sub Feed 2 (Mobile / Alternate) — slot 1 -->
+            <!-- Sub Feed 2 (Mobile / Alternate) -->
             <div id="pipSlot1" data-pip-label="Mobile Cam"
-                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
-                        shrink-0 w-40 sm:w-56 lg:w-full
-                        aspect-video lg:aspect-auto lg:flex-grow
-                        transition-all cursor-pointer group">
-                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
-                    <span class="font-medium text-gray-200">Mobile Cam</span>
-                    <span id="pipDot1" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
+                
+                <div id="pipVideo1" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <i class="fa-solid fa-mobile-screen text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
-                <div id="pipVideo1" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
-                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">smartphone</span>
+                
+                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
+                    <span class="text-[10px] font-semibold tracking-wide">Mobile Cam</span>
+                </div>
+                
+                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
+                    <span id="pipDot1" class="block h-2 w-2 rounded-full bg-slate-500"></span>
                 </div>
             </div>
 
-            <!-- Sub Feed 3 (USB/Extra) — slot 2 -->
+            <!-- Sub Feed 3 (USB/Extra) -->
             <div id="pipSlot2" data-pip-label="USB Aux Cam"
-                 class="bg-slate-800 rounded-lg shadow-md border-2 border-transparent hover:border-medical-blue overflow-hidden flex flex-col
-                        shrink-0 w-40 sm:w-56 lg:w-full
-                        aspect-video lg:aspect-auto lg:flex-grow
-                        transition-all cursor-pointer group">
-                <div class="bg-gray-800/80 py-1.5 px-3 flex justify-between items-center text-xs backdrop-blur-sm z-10 border-b border-gray-700">
-                    <span class="font-medium text-gray-200">USB Aux Cam</span>
-                    <span id="pipDot2" class="h-2 w-2 rounded-full bg-gray-500"></span>
+                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
+                
+                <div id="pipVideo2" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <i class="fa-brands fa-usb text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
-                <div id="pipVideo2" class="flex-grow flex items-center justify-center relative bg-slate-900 overflow-hidden">
-                    <span class="material-icons text-slate-600 text-3xl sm:text-4xl group-hover:scale-110 transition-transform">usb</span>
+                
+                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
+                    <span class="text-[10px] font-semibold tracking-wide">USB Aux</span>
+                </div>
+                
+                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
+                    <span id="pipDot2" class="block h-2 w-2 rounded-full bg-slate-500"></span>
                 </div>
             </div>
 
-        </div>
+        </aside>
 
     </main>
 
-    <!-- Phase 4: WebRTC + WebSocket Integration -->
+    <!-- Phase 4: WebRTC & Overhaul Scripts -->
+    <script src="ui.js"></script>
     <script src="webrtc.js"></script>
+    
+    <!-- Enhancing dynamically generated PiP slots to match the new dark sleek style -->
+    <script>
+        // webrtc.js dynamically creates more cards via `buildPipSlot`
+        // We override its style classes on load via a MutationObserver on #pipSidebar
+        const pipObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1 && node.hasAttribute('data-stream-id')) {
+                        // It's a dynamic slot
+                        node.className = 'relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate';
+                        
+                        // webrtc.js adds a header div. Let's convert it to the new overlay.
+                        const headerArea = node.querySelector('.bg-gray-800\\/80');
+                        if (headerArea) {
+                            const labelText = headerArea.querySelector('span.font-medium').textContent;
+                            headerArea.remove(); // Remove the old top bar
+                            
+                            // Add new bottom-left label
+                            const labelDiv = document.createElement('div');
+                            labelDiv.className = 'absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end pointer-events-none';
+                            labelDiv.innerHTML = `<span class="text-[10px] font-semibold tracking-wide">${labelText}</span>`;
+                            node.appendChild(labelDiv);
+                            
+                            // Add new top-right dot
+                            const dotDiv = document.createElement('div');
+                            dotDiv.className = 'absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10 pointer-events-none';
+                            dotDiv.innerHTML = `<span class="block h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>`;
+                            node.appendChild(dotDiv);
+                        }
+                    }
+                });
+            });
+        });
+
+        const sidebar = document.getElementById('pipSidebar');
+        if(sidebar) {
+            pipObserver.observe(sidebar, { childList: true });
+        }
+    </script>
 </body>
 </html>
