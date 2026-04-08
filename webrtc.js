@@ -674,19 +674,19 @@ function handleMediaStateMsg(msg) {
     const tile = document.getElementById(`tile-${peerId}`);
     if (tile) {
       const video = tile.querySelector('video');
-      let placeholder = tile.querySelector('.cam-off-placeholder');
+      let placeholder = tile.querySelector('.cam-paused-overlay');
       if (!placeholder) {
         placeholder = document.createElement('div');
-        placeholder.className = 'cam-off-placeholder absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 z-0';
-        placeholder.innerHTML = '<i class="fa-solid fa-video-slash text-4xl mb-2"></i><span class="text-xs">Camera Off</span>';
+        placeholder.className = 'cam-paused-overlay absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-300 z-10 transition-opacity';
+        placeholder.innerHTML = '<i class="fa-solid fa-circle-pause text-4xl mb-2"></i><span class="text-sm font-semibold tracking-wide">Camera Paused</span>';
         tile.insertBefore(placeholder, tile.firstChild);
       }
       if (isVideoOn) {
-        if (video) video.style.visibility = '';
+        if (video) video.style.opacity = '1';
         placeholder.style.display = 'none';
         if (video) video.play().catch(e => console.error(e));
       } else {
-        if (video) video.style.visibility = 'hidden';
+        if (video) video.style.opacity = '0';
         placeholder.style.display = 'flex';
       }
     }
@@ -696,19 +696,19 @@ function handleMediaStateMsg(msg) {
     const consultantVideo = document.getElementById('consultantRemoteVideo');
     if (consultantVideo) {
       const container = document.getElementById('consultantPipContainer');
-      let placeholder = container.querySelector('.cam-off-placeholder');
+      let placeholder = container.querySelector('.cam-paused-overlay');
       if (!placeholder) {
         placeholder = document.createElement('div');
-        placeholder.className = 'cam-off-placeholder absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 z-0 rounded-2xl overflow-hidden';
-        placeholder.innerHTML = '<i class="fa-solid fa-video-slash text-2xl mb-1"></i><span class="text-[10px]">Off</span>';
+        placeholder.className = 'cam-paused-overlay absolute inset-0 flex flex-col items-center justify-center bg-slate-900/90 text-slate-300 z-10 rounded-2xl overflow-hidden transition-opacity';
+        placeholder.innerHTML = '<i class="fa-solid fa-circle-pause text-3xl mb-1"></i><span class="text-xs font-semibold">Paused</span>';
         container.insertBefore(placeholder, container.firstChild);
       }
       if (isVideoOn) {
-        consultantVideo.style.visibility = '';
+        consultantVideo.style.opacity = '1';
         placeholder.style.display = 'none';
         consultantVideo.play().catch(e => console.error(e));
       } else {
-        consultantVideo.style.visibility = 'hidden';
+        consultantVideo.style.opacity = '0';
         placeholder.style.display = 'flex';
       }
     }
@@ -782,9 +782,10 @@ async function startConsultantMedia() {
 /**
  * Stops the Consultant's local media.
  */
-function stopConsultantMedia() {
+async function stopConsultantMedia() {
   if (!localConsultantStream) return;
 
+  // Stop local tracks
   localConsultantStream.getTracks().forEach(t => t.stop());
   localConsultantStream = null;
 
@@ -793,11 +794,33 @@ function stopConsultantMedia() {
   if (previewVideo) previewVideo.srcObject = null;
   if (previewContainer) previewContainer.style.display = 'none';
 
-  // Remote PCs should remove the track if we want to cleanly stop
-  // But renegotiation or simply sending WS media_state: false works best to avoid freeze.
+  // Send WS media_state false payload
   sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: false });
 
-  log('Consultant media stopped.');
+  // Renegotiate track removal across all peer connections
+  for (const [peerId, pc] of Object.entries(peerConnections)) {
+    // Call pc.removeTrack(sender) for existing senders
+    pc.getSenders().forEach(sender => {
+      pc.removeTrack(sender);
+    });
+
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      sendSignal({
+        action: 'relay',
+        room_id: currentRoomId,
+        target_id: peerId,
+        type: 'offer',
+        sdp: pc.localDescription,
+      });
+      log(`Renegotiation offer sent to ${peerId} after stopping media.`);
+    } catch (err) {
+      warn(`Renegotiation failed on stop media for ${peerId}:`, err);
+    }
+  }
+
+  log('Consultant media stopped and tracks removed.');
 }
 
 /**

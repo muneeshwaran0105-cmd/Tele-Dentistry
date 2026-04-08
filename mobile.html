@@ -316,17 +316,22 @@
             showToast('Enter a valid Room ID and 4-digit PIN.', 'error');
             return;
         }
-        connectSignaling(() => {
-            send({ action: 'join_room', room_id: roomId, pin });
+
+        // Must await camera and add localStream before connecting WS
+        startCamera().then(() => {
+            if (!localStream) {
+                showToast('Camera access is required to join.', 'error');
+                return;
+            }
+            connectSignaling(() => {
+                send({ action: 'join_room', room_id: roomId, pin });
+            });
         });
     }
 
     async function onRoomJoined(msg) {
         log('Joined room:', msg.room_id);
         showToast('Joined room "' + msg.room_id + '"!', 'success');
-
-        // Start camera now
-        await startCamera();
 
         // Transition UI
         joinOverlay.classList.add('hidden');
