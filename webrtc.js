@@ -17,7 +17,7 @@
 // Configuration
 // ---------------------------------------------------------------------------
 
-const WS_URL = 'ws://192.168.0.119:8765';
+const WS_URL = 'wss://tele-dentistry-server.onrender.com';
 
 const RTC_CONFIG = {
   iceServers: [
@@ -225,9 +225,9 @@ function handleRoomCreated(msg) {
 
   // Lock connection buttons so the user can't create another room accidentally
   const createBtn = document.getElementById('createRoomBtn');
-  const joinBtn   = document.getElementById('joinRoomBtn');
+  const joinBtn = document.getElementById('joinRoomBtn');
   if (createBtn) createBtn.disabled = true;
-  if (joinBtn)   joinBtn.disabled   = true;
+  if (joinBtn) joinBtn.disabled = true;
 
   // Room is ready — build the peer connection and wait for peers to join
   buildPeerConnection();
@@ -824,9 +824,9 @@ function endCall() {
 
   // Re-enable connection buttons
   const createBtn = document.getElementById('createRoomBtn');
-  const joinBtn   = document.getElementById('joinRoomBtn');
+  const joinBtn = document.getElementById('joinRoomBtn');
   if (createBtn) createBtn.disabled = false;
-  if (joinBtn)   joinBtn.disabled   = false;
+  if (joinBtn) joinBtn.disabled = false;
 
   showToast('Call ended.', 'info');
 }
@@ -839,10 +839,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Detect role from DOM landmarks ────────────────────────────────
   // dentist.html has #startCamerasBtn; superior.html has #pipSidebar but NOT startCamerasBtn
-  const isDentist  = !!document.getElementById('startCamerasBtn');
+  const isDentist = !!document.getElementById('startCamerasBtn');
   const isSuperior = !!document.getElementById('pipSidebar') && !isDentist;
 
-  if (isDentist)  role = 'dentist';
+  if (isDentist) role = 'dentist';
   if (isSuperior) role = 'superior';
 
   if (!role) {
