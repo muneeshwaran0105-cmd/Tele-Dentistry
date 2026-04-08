@@ -26,7 +26,10 @@ async function populateDeviceDropdowns() {
         // If labels are missing, we need permission first
         if (hasBlankLabels) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 } }, 
+                    audio: true 
+                });
                 stream.getTracks().forEach(t => t.stop());
                 devices = await navigator.mediaDevices.enumerateDevices();
             } catch (err) {

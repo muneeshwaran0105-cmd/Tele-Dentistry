@@ -147,7 +147,11 @@ function showError(message) {
 async function startMobileCamera() {
   try {
     const constraints = {
-      video: { facingMode: { exact: 'environment' } }, // rear-facing only
+      video: { 
+        facingMode: { exact: 'environment' },
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
+      }, // rear-facing only
       audio: true, // Phase 19 fix: enable two-way audio
     };
 
@@ -174,7 +178,13 @@ async function startMobileCamera() {
 async function startDesktopCameras() {
   // --- Primary webcam -------------------------------------------
   try {
-    pcStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    pcStream = await navigator.mediaDevices.getUserMedia({ 
+      video: {
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
+      }, 
+      audio: true 
+    });
     window.pcStream = pcStream;
     window.localStream = pcStream; // Phase 19: Align for handleOffer in webrtc.js
     injectVideo(pcFeedPlaceholder, pcStream, 'PC Camera');
@@ -237,7 +247,11 @@ async function detectAndStartUSBCamera() {
 
     // Request the USB camera stream by its deviceId
     usbStream = await navigator.mediaDevices.getUserMedia({
-      video: { deviceId: { exact: usbDevice.deviceId } },
+      video: { 
+        deviceId: { exact: usbDevice.deviceId },
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
+      },
       audio: false,
     });
     window.usbStream = usbStream;

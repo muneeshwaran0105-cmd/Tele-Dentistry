@@ -74,6 +74,11 @@
                 </span>
                 <span class="text-xs font-bold text-red-300 tracking-wider live-pulse">LIVE</span>
             </div>
+            <!-- Phase 21: Network Monitor (Mobile) -->
+            <div id="network-monitor" class="flex items-center space-x-2 bg-white/10 backdrop-blur-md border border-white/20 px-2.5 py-1 rounded-lg">
+                <div id="net-dot" class="w-2 h-2 rounded-full bg-gray-500"></div>
+                <span id="net-text" class="text-[9px] font-bold text-white/50 uppercase tracking-widest">Wait</span>
+            </div>
         </div>
     </div>
 
@@ -231,7 +236,11 @@
     async function startCamera() {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { 
+                    facingMode: "environment", 
+                    width: { ideal: 1280, max: 1920 }, 
+                    height: { ideal: 720, max: 1080 } 
+                },
                 audio: true,
             });
             activeTrack = localStream.getVideoTracks()[0];
@@ -252,7 +261,11 @@
         if (socket && socket.readyState === WebSocket.OPEN) { cb(); return; }
         log('Connecting to', WS_URL);
         socket = new WebSocket(WS_URL);
-        socket.onopen  = () => { log('WS open'); cb(); };
+        socket.onopen  = () => { 
+            log('WS open'); 
+            cb(); 
+            startNetworkMonitoring(); // Phase 21: Start health checks
+        };
         socket.onclose = () => log('WS closed');
         socket.onerror = (e) => { warn('WS error', e); showToast('Signaling error', 'error'); };
         socket.onmessage = (ev) => {
@@ -410,7 +423,11 @@
         if (!window.localStream) { 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+                    video: { 
+                        facingMode: "environment", 
+                        width: { ideal: 1280, max: 1920 }, 
+                        height: { ideal: 720, max: 1080 } 
+                    },
                     audio: true,
                 });
                 activeTrack = localStream.getVideoTracks()[0];
@@ -463,6 +480,62 @@
         if (!pc || !msg.candidate) return;
         try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); }
         catch (e) { warn('addIceCandidate error:', e); }
+    }
+
+    /**
+     * Phase 21: Network Monitoring (Mobile Adapter)
+     */
+    async function startNetworkMonitoring() {
+        setInterval(async () => {
+            const pcs = Object.values(peerConnections);
+            const dot = document.getElementById('net-dot');
+            const text = document.getElementById('net-text');
+            if (!dot || !text) return;
+
+            if (pcs.length === 0) {
+                dot.className = 'w-2 h-2 rounded-full bg-gray-500';
+                text.textContent = 'Wait';
+                text.className = 'text-[9px] font-bold text-white/50 uppercase tracking-widest';
+                return;
+            }
+
+            let worstRTT = 0;
+            let isDisconnected = false;
+
+            for (const pc of pcs) {
+                if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+                    isDisconnected = true;
+                    break;
+                }
+                try {
+                    const stats = await pc.getStats();
+                    stats.forEach(report => {
+                        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+                            const rtt = (report.currentRoundTripTime || 0) * 1000;
+                            if (rtt > worstRTT) worstRTT = rtt;
+                        }
+                    });
+                } catch (e) {}
+            }
+
+            if (isDisconnected) {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]';
+                text.textContent = 'Poor';
+                text.className = 'text-[9px] font-bold text-red-400 uppercase tracking-widest';
+            } else if (worstRTT < 150) {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]';
+                text.textContent = 'Good';
+                text.className = 'text-[9px] font-bold text-emerald-400 uppercase tracking-widest';
+            } else if (worstRTT < 400) {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]';
+                text.textContent = 'Fair';
+                text.className = 'text-[9px] font-bold text-amber-400 uppercase tracking-widest';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)]';
+                text.textContent = 'Poor';
+                text.className = 'text-[9px] font-bold text-red-400 uppercase tracking-widest';
+            }
+        }, 3000);
     }
 
     function cleanupPeer(peerId) {

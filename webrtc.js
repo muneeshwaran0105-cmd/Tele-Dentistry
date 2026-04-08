@@ -95,6 +95,7 @@ function connectSignaling(onOpenCallback) {
   socket.onopen = () => {
     log('WebSocket connected.');
     onOpenCallback();
+    startNetworkMonitoring(); // Phase 21: Start health checks
   };
 
   socket.onmessage = (event) => {
@@ -810,7 +811,10 @@ async function startConsultantMedia() {
 
   try {
     localConsultantStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
+      video: {
+        width: { ideal: 1280, max: 1920 },
+        height: { ideal: 720, max: 1080 }
+      },
       audio: true,
     });
     window.localConsultantStream = localConsultantStream; // Phase 18: Make global for transceiver logic
@@ -828,31 +832,43 @@ async function startConsultantMedia() {
     }
     if (previewContainer) previewContainer.style.display = '';
 
-    // Add tracks to ALL existing peer connections
-    Object.entries(peerConnections).forEach(([peerId, pc]) => {
-      addConsultantTracksToConnection(pc);
-    });
+    // Phase 20: Add tracks to ALL existing peer connections with Forced Safari Renegotiation
+    for (const peerId in peerConnections) {
+        const pc = peerConnections[peerId];
+        let needsRenegotiation = false;
 
-    // If tracks were added to existing connections, renegotiation is needed.
-    // onnegotiationneeded will fire automatically on the dentist side.
-    // On superior side, we need to trigger renegotiation manually.
-    if (role === 'superior') {
-      for (const [peerId, pc] of Object.entries(peerConnections)) {
-        log(`Renegotiating with ${peerId} after adding consultant tracks...`);
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendSignal({
-            action: 'relay',
-            room_id: currentRoomId,
-            target_id: peerId,
-            type: 'offer',
-            sdp: pc.localDescription,
-          });
-        } catch (err) {
-          warn(`Renegotiation offer failed for ${peerId}:`, err);
+        window.localConsultantStream.getTracks().forEach(track => {
+            const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === track.kind);
+            if (transceiver) {
+                transceiver.sender.replaceTrack(track).catch(e => console.error("replaceTrack error:", e));
+                if (transceiver.direction !== 'sendrecv') {
+                    transceiver.direction = 'sendrecv';
+                    needsRenegotiation = true; // Safari requires renegotiation when direction changes
+                    log(`Safari: Direction changed to sendrecv for ${track.kind} on ${peerId}`);
+                }
+            } else {
+                pc.addTrack(track, window.localConsultantStream);
+                needsRenegotiation = true;
+                log(`Safari: Added new ${track.kind} track to ${peerId}`);
+            }
+        });
+
+        // CRITICAL: Force Safari to flush the RTP pipeline
+        if (needsRenegotiation) {
+            log(`Safari: Triggering formal renegotiation offer for ${peerId}`);
+            pc.createOffer()
+              .then(offer => pc.setLocalDescription(offer))
+              .then(() => {
+                  sendSignal({
+                      action: "relay",
+                      room_id: currentRoomId,
+                      target_id: peerId,
+                      type: "offer",
+                      sdp: pc.localDescription,
+                  });
+              })
+              .catch(e => console.error("Safari renegotiation failed:", e));
         }
-      }
     }
 
     showToast('Camera & mic started.', 'success');
@@ -1001,6 +1017,78 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 });
+
+// ===========================================================================
+// SECTION I — Phase 21: Network Health Monitoring
+// ===========================================================================
+
+/**
+ * Polls active peer connections every 3 seconds to calculate worst-case RTT.
+ * Updates the #network-monitor UI elements.
+ */
+async function startNetworkMonitoring() {
+  log('Network monitoring started.');
+  
+  setInterval(async () => {
+    const pcs = Object.values(peerConnections);
+    const dot = document.getElementById('net-dot');
+    const text = document.getElementById('net-text');
+    if (!dot || !text) return;
+
+    if (pcs.length === 0) {
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-gray-300 transition-colors duration-500';
+      text.textContent = 'Waiting...';
+      text.className = 'text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none';
+      return;
+    }
+
+    let worstRTT = 0;
+    let isDisconnected = false;
+
+    for (const pc of pcs) {
+      // Check for connection failure
+      if (pc.iceConnectionState === 'disconnected' || pc.iceConnectionState === 'failed') {
+        isDisconnected = true;
+        break;
+      }
+
+      try {
+        const stats = await pc.getStats();
+        stats.forEach(report => {
+          // Identify the active candidate pair
+          if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+            const rtt = (report.currentRoundTripTime || 0) * 1000;
+            if (rtt > worstRTT) worstRTT = rtt;
+          }
+        });
+      } catch (e) {
+        // Stats might not be available yet
+      }
+    }
+
+    // UI Translation Logic
+    if (isDisconnected) {
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-colors duration-500';
+      text.textContent = 'Poor';
+      text.className = 'text-[10px] font-bold text-red-500 uppercase tracking-widest leading-none';
+    } else if (worstRTT < 150) {
+      // Good Connection
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-colors duration-500';
+      text.textContent = 'Strong';
+      text.className = 'text-[10px] font-bold text-emerald-500 uppercase tracking-widest leading-none';
+    } else if (worstRTT < 400) {
+      // Fair Connection
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)] transition-colors duration-500';
+      text.textContent = 'Fair';
+      text.className = 'text-[10px] font-bold text-amber-500 uppercase tracking-widest leading-none';
+    } else {
+      // Poor Connection (> 400ms)
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)] transition-colors duration-500';
+      text.textContent = 'Poor';
+      text.className = 'text-[10px] font-bold text-red-500 uppercase tracking-widest leading-none';
+    }
+  }, 3000);
+}
 
 // Expose for ui.js specifically for Provider
 window.sendMediaState = function(isVideoOn) {
