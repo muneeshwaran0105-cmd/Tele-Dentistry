@@ -327,19 +327,32 @@ function addDentistTracksToConnection(pc) {
 function addConsultantTracksToConnection(pc) {
   if (!localConsultantStream) return;
 
-  localConsultantStream.getTracks().forEach(track => {
-    // Check if a transceiver already exists for this track kind
-    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === track.kind);
+  const videoTrack = localConsultantStream.getVideoTracks()[0];
+  const audioTrack = localConsultantStream.getAudioTracks()[0];
+
+  if (videoTrack) {
+    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'video');
     if (transceiver) {
-      if (transceiver.sender.track !== track) {
-        transceiver.sender.replaceTrack(track);
-        log('Consultant track (transceiver) replaced:', track.kind);
-      }
+      transceiver.sender.replaceTrack(videoTrack).catch(e => console.error("Safari replaceTrack error:", e));
+      transceiver.direction = 'sendrecv'; 
+      log('Consultant video track (transceiver) replaced');
     } else {
-      pc.addTrack(track, localConsultantStream);
-      log('Consultant track added:', track.kind);
+      pc.addTrack(videoTrack, localConsultantStream);
+      log('Consultant video track added');
     }
-  });
+  }
+
+  if (audioTrack) {
+    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
+    if (transceiver) {
+      transceiver.sender.replaceTrack(audioTrack).catch(e => console.error("Safari replaceTrack error:", e));
+      transceiver.direction = 'sendrecv'; 
+      log('Consultant audio track (transceiver) replaced');
+    } else {
+      pc.addTrack(audioTrack, localConsultantStream);
+      log('Consultant audio track added');
+    }
+  }
 }
 
 /**
@@ -802,8 +815,11 @@ async function startConsultantMedia() {
     const previewVideo = document.getElementById('localConsultantVideo');
     const previewContainer = document.getElementById('localPreviewContainer');
     if (previewVideo) {
+      previewVideo.muted = true;       // CRITICAL for Safari local autoplay
+      previewVideo.playsInline = true; // CRITICAL for iOS
+      previewVideo.autoplay = true;
       previewVideo.srcObject = localConsultantStream;
-      previewVideo.play().catch(e => console.error('Local preview autoplay blocked:', e));
+      previewVideo.play().catch(e => console.error("Local play failed:", e));
     }
     if (previewContainer) previewContainer.style.display = '';
 
