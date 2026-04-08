@@ -32,7 +32,7 @@ log = logging.getLogger("signaling")
 # rooms = {
 #     "<room_id>": {
 #         "pin":     "1234",              # 4-digit PIN string
-#         "clients": {<WebSocket>, ...},  # set of active WebSocket connections
+#         "clients": {<WebSocket>: "<peer_id>", ...}, # mapping of socket to peer ID
 #     }
 # }
 rooms: dict[str, dict] = {}
@@ -67,7 +67,7 @@ async def broadcast(room_id: str, message: str, exclude: websockets.WebSocketSer
     if not room:
         return
 
-    targets = [c for c in room["clients"] if c is not exclude]
+    targets = [c for c in room["clients"].keys() if c is not exclude]
     if targets:
         # Fan-out to all peers concurrently
         await asyncio.gather(*[ws.send(message) for ws in targets], return_exceptions=True)
@@ -97,8 +97,9 @@ async def handle_create_room(ws, data: dict) -> None:
         })
         return
 
+    peer_id = data.get("peer_id") or f"p-{random.randint(100, 999)}"
     pin = generate_pin()
-    rooms[room_id] = {"pin": pin, "clients": {ws}}
+    rooms[room_id] = {"pin": pin, "clients": {ws: peer_id}}
 
     log.info("Room created | id=%s  pin=%s", room_id, pin)
 
@@ -106,6 +107,7 @@ async def handle_create_room(ws, data: dict) -> None:
         "event": "room_created",
         "room_id": room_id,
         "pin": pin,
+        "peer_id": peer_id  # confirm their assigned ID
     })
 
 
@@ -140,7 +142,8 @@ async def handle_join_room(ws, data: dict) -> None:
         return
 
     # Add the new peer to the room
-    room["clients"].add(ws)
+    peer_id = data.get("peer_id") or f"p-{random.randint(100, 999)}"
+    room["clients"][ws] = peer_id
     peer_count = len(room["clients"])
 
     log.info("Peer joined  | id=%s  peers=%d", room_id, peer_count)
@@ -156,6 +159,7 @@ async def handle_join_room(ws, data: dict) -> None:
     await broadcast(room_id, json.dumps({
         "event": "peer_joined",
         "peer_count": peer_count,
+        "peer_id": peer_id  # Let them know WHO joined
     }), exclude=ws)
 
 
@@ -181,6 +185,25 @@ async def handle_relay(ws, room_id: str, raw_message: str) -> None:
         return
 
     log.info("Relay        | id=%s  from=%s", room_id, ws.remote_address)
+    
+    # Check for targeted relay
+    try:
+        data = json.loads(raw_message)
+        target_id = data.get("target_id")
+        
+        if target_id:
+            # Server-Side Filtering: find the specific WebSocket for this target_id
+            target_ws = next((c for c, pid in rooms[room_id]["clients"].items() if pid == target_id), None)
+            if target_ws:
+                await send_json(target_ws, data)
+                return
+            else:
+                log.warning("Target ID %s not found in room %s", target_id, room_id)
+                return
+    except Exception as e:
+        log.error("Relay error: %s", e)
+
+    # Fallback to broadcast (historical or for non-targeted relay)
     await broadcast(room_id, raw_message, exclude=ws)
 
 
@@ -197,10 +220,10 @@ async def cleanup(ws, room_id: Optional[str]) -> None:
         return
 
     room = rooms[room_id]
-    room["clients"].discard(ws)
+    peer_id = room["clients"].pop(ws, None)
     peer_count = len(room["clients"])
 
-    log.info("Peer left    | id=%s  peers=%d", room_id, peer_count)
+    log.info("Peer left    | id=%s  peer=%s  remaining=%d", room_id, peer_id, peer_count)
 
     if peer_count == 0:
         del rooms[room_id]
@@ -210,6 +233,7 @@ async def cleanup(ws, room_id: Optional[str]) -> None:
         await broadcast(room_id, json.dumps({
             "event": "peer_left",
             "peer_count": peer_count,
+            "peer_id": peer_id
         }))
 
 
