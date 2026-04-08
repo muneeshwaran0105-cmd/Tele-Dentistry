@@ -284,10 +284,81 @@ function makeDraggable(element) {
 }
 
 // ---------------------------------------------------------------------------
+// 5. Snapshot API (Phase 18)
+// ---------------------------------------------------------------------------
+
+function setupSnapshot() {
+    const snapshotBtn = document.getElementById('snapshotBtn2');
+    if (!snapshotBtn) return;
+
+    snapshotBtn.addEventListener('click', () => {
+        // 1. Find the currently active remote video
+        // Check for Focused Tile first
+        let video = document.querySelector('#dynamicVideoGrid .video-tile.focused video');
+        
+        // If none focused, check for any video in the grid
+        if (!video) {
+            video = document.querySelector('#dynamicVideoGrid .video-tile video');
+        }
+
+        if (!video) {
+            console.warn('[Snapshot] No remote video found in grid.');
+            if (typeof showToast === 'function') showToast('No remote video to capture.', 'error');
+            return;
+        }
+
+        // 2. Check readyState (>= 2 is 'metadata' or higher)
+        if (video.readyState < 2) {
+            console.warn('[Snapshot] Video not ready for capture.');
+            return;
+        }
+
+        try {
+            // 3. Create in-memory canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // 4. Draw the frame
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // 5. Convert to image
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            // 6. Render the Snapshot
+            const gallery = document.getElementById('snapshotGallery');
+            if (gallery) {
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.className = 'w-full rounded-lg shadow-md mb-3 border border-slate-200 transition-all hover:scale-105 cursor-pointer fade-in';
+                
+                // Clicking the thumbnail opens it in a new tab
+                img.onclick = () => {
+                    const win = window.open();
+                    win.document.write(`<iframe src="${dataUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                };
+
+                gallery.prepend(img); // Newest at top
+                
+                if (typeof window.appendEventLog === 'function') {
+                    window.appendEventLog('Clinical snapshot captured.');
+                }
+            } else {
+                console.error('[Snapshot] Gallery container not found.');
+            }
+        } catch (err) {
+            console.error('[Snapshot] Capture failed:', err);
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
     populateDeviceDropdowns();
     setupMediaToggles();
     setupSidebarToggle();
+    setupSnapshot(); // Phase 18
 });

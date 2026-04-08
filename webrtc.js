@@ -321,38 +321,23 @@ function addDentistTracksToConnection(pc) {
 }
 
 /**
- * Phase 8: Adds Consultant's local camera/mic tracks to a peer connection.
- * Called when a PC is created and when the consultant starts their camera.
+ * Phase 18: Adds Consultant's local camera/mic tracks to a peer connection.
+ * Uses explicit transceiver routing to ensure Safari encoders wake up.
  */
 function addConsultantTracksToConnection(pc) {
-  if (!localConsultantStream) return;
+  if (!window.localConsultantStream) return;
 
-  const videoTrack = localConsultantStream.getVideoTracks()[0];
-  const audioTrack = localConsultantStream.getAudioTracks()[0];
-
-  if (videoTrack) {
-    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'video');
+  window.localConsultantStream.getTracks().forEach(track => {
+    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === track.kind);
     if (transceiver) {
-      transceiver.sender.replaceTrack(videoTrack).catch(e => console.error("Safari replaceTrack error:", e));
-      transceiver.direction = 'sendrecv'; 
-      log('Consultant video track (transceiver) replaced');
+      transceiver.sender.replaceTrack(track).catch(e => console.error("replaceTrack error:", e));
+      transceiver.direction = 'sendrecv'; // Force encoder wake-up
+      log(`Consultant ${track.kind} track (transceiver) replaced & direction set to sendrecv`);
     } else {
-      pc.addTrack(videoTrack, localConsultantStream);
-      log('Consultant video track added');
+      pc.addTrack(track, window.localConsultantStream);
+      log(`Consultant ${track.kind} track added via addTrack`);
     }
-  }
-
-  if (audioTrack) {
-    const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === 'audio');
-    if (transceiver) {
-      transceiver.sender.replaceTrack(audioTrack).catch(e => console.error("Safari replaceTrack error:", e));
-      transceiver.direction = 'sendrecv'; 
-      log('Consultant audio track (transceiver) replaced');
-    } else {
-      pc.addTrack(audioTrack, localConsultantStream);
-      log('Consultant audio track added');
-    }
-  }
+  });
 }
 
 /**
@@ -809,6 +794,7 @@ async function startConsultantMedia() {
       video: true,
       audio: true,
     });
+    window.localConsultantStream = localConsultantStream; // Phase 18: Make global for transceiver logic
     log('Consultant local media captured:', localConsultantStream.getTracks().map(t => t.kind));
 
     // Show local preview
