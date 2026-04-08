@@ -106,7 +106,7 @@ function setupMediaToggles() {
         camBtn.addEventListener('click', () => {
             isCameraPaused = !isCameraPaused;
             
-            // Toggle Video Tracks across streams
+            // Soft-Toggle: Set enabled flag on local tracks across all active streams
             if (window.pcStream) {
                 window.pcStream.getVideoTracks().forEach(t => t.enabled = !isCameraPaused);
             }
@@ -114,9 +114,9 @@ function setupMediaToggles() {
                 window.usbStream.getVideoTracks().forEach(t => t.enabled = !isCameraPaused);
             }
             
-            // Update UI
-            const icon = camBtn.querySelector('.material-icons') || camBtn.querySelector('i');
-            const bgDiv = camBtn.querySelector('.rounded-full') || camBtn.firstElementChild;
+            // Update UI Button appearance
+            const icon = camBtn.querySelector('i') || camBtn.querySelector('.material-icons');
+            const bgDiv = camBtn.querySelector('.rounded-full') || camBtn.querySelector('div');
             
             if (isCameraPaused) {
                 if (icon) {
@@ -129,9 +129,12 @@ function setupMediaToggles() {
                 }
                 if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
             }
+
+            // Broadcast state to peers via signaling (webrtc.js)
             if (typeof window.sendMediaState === 'function') {
                 window.sendMediaState(!isCameraPaused);
             }
+            console.log('[ui.js] Camera toggled:', isCameraPaused ? 'PAUSED' : 'RESUMED');
         });
     }
 }

@@ -145,6 +145,7 @@ async function startMobileCamera() {
     };
 
     pcStream   = await navigator.mediaDevices.getUserMedia(constraints);
+    window.pcStream = pcStream;
     activeTrack = pcStream.getVideoTracks()[0];
 
     injectVideo(pcFeedPlaceholder, pcStream, 'Mobile Camera');
@@ -166,6 +167,7 @@ async function startDesktopCameras() {
   // --- Primary webcam -------------------------------------------
   try {
     pcStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    window.pcStream = pcStream;
     injectVideo(pcFeedPlaceholder, pcStream, 'PC Camera');
     setIndicator('pc', 'live');
     updateStartBtn(true);
@@ -229,6 +231,7 @@ async function detectAndStartUSBCamera() {
       video: { deviceId: { exact: usbDevice.deviceId } },
       audio: false,
     });
+    window.usbStream = usbStream;
 
     injectVideo(intaoralPlaceholder, usbStream, 'Intraoral Camera');
     setIndicator('intraoral', 'live');
