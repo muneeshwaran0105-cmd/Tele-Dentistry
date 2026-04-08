@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Teledentistry Portal - Mobile Camera</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        medical: {
+                            blue: '#3b82f6',
+                            dark: '#0f172a',
+                            light: '#f8fafc',
+                            white: '#FFFFFF',
+                            green: '#10b981',
+                            red: '#ef4444',
+                            gray: '#cbd5e1'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { height: 100%; margin: 0; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; }
+        /* Subtle pulse on the live badge */
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .live-pulse { animation: livePulse 2s ease-in-out infinite; }
+    </style>
+</head>
+<body class="bg-black text-white relative">
+
+    <!-- ── Full-screen local video background ───────────────────────── -->
+    <video id="localMobileVideo" autoplay playsinline muted
+           class="absolute inset-0 w-full h-full object-cover"></video>
+
+    <!-- Dark gradient overlay for readability -->
+    <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/70 pointer-events-none z-10"></div>
+
+    <!-- ── Top Status Bar ────────────────────────────────────────────── -->
+    <div class="absolute top-0 left-0 w-full z-30 px-4 pt-[env(safe-area-inset-top)] safe-top">
+        <div class="flex items-center justify-between py-3">
+            <div class="flex items-center space-x-2.5">
+                <div class="bg-white/15 backdrop-blur-md p-2 rounded-xl border border-white/10">
+                    <i class="fa-solid fa-tooth text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white leading-none">Teledentistry</h1>
+                    <span class="text-[10px] text-white/60 font-medium tracking-wider uppercase">Mobile Camera</span>
+                </div>
+            </div>
+            <!-- Live indicator (shown after joining) -->
+            <div id="liveIndicator" class="hidden items-center space-x-2 bg-red-500/20 backdrop-blur-md border border-red-400/30 px-3 py-1.5 rounded-full">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                </span>
+                <span class="text-xs font-bold text-red-300 tracking-wider live-pulse">LIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Join Room Overlay ─────────────────────────────────────────── -->
+    <div id="joinOverlay" class="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div class="w-full max-w-sm mx-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl">
+            <!-- Header -->
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-medical-blue/20 rounded-2xl mb-3 border border-medical-blue/30">
+                    <i class="fa-solid fa-video text-medical-blue text-2xl"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Join Session</h2>
+                <p class="text-white/50 text-sm mt-1">Enter the Room ID and PIN to start broadcasting</p>
+            </div>
+
+            <!-- Form -->
+            <div class="space-y-3 mb-5">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-house-medical text-white/40"></i>
+                    </div>
+                    <input type="text" id="roomId"
+                           placeholder="Room ID"
+                           class="w-full pl-11 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-medical-blue focus:bg-white/15 transition-all">
+                </div>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-lock text-white/40"></i>
+                    </div>
+                    <input type="text" id="roomPin"
+                           placeholder="PIN"
+                           maxlength="4"
+                           class="w-full pl-11 pr-4 py-3.5 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/40 text-center font-mono text-sm tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-medical-blue focus:bg-white/15 transition-all">
+                </div>
+            </div>
+
+            <!-- Join Button -->
+            <button id="joinRoomBtn"
+                    class="w-full bg-medical-blue hover:bg-blue-600 active:bg-blue-700 text-white py-3.5 rounded-2xl font-semibold shadow-lg shadow-blue-500/30 flex items-center justify-center space-x-2 text-sm transition-all transform active:scale-[0.97]">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Join Room</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Bottom Navigation (Frosted Glass) ─────────────────────────── -->
+    <div id="controlBar" class="absolute bottom-0 left-0 w-full z-30 hidden">
+        <!-- Frosted glass background -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-xl border-t border-white/10 -z-10"></div>
+
+        <div class="flex justify-around items-center py-4 px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+
+            <!-- Toggle Camera -->
+            <button id="mobileCamToggleBtn" class="flex flex-col items-center space-y-1.5 transition-transform active:scale-90">
+                <div class="w-14 h-14 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center transition-all shadow-lg">
+                    <i id="mobileCamIcon" class="fa-solid fa-video text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-semibold text-white/70 tracking-wide">Camera</span>
+            </button>
+
+            <!-- Toggle Flashlight -->
+            <button id="mobileFlashBtn" class="flex flex-col items-center space-y-1.5 transition-transform active:scale-90">
+                <div id="flashBtnBg" class="w-14 h-14 bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center transition-all shadow-lg">
+                    <i id="mobileFlashIcon" class="fa-solid fa-bolt text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-semibold text-white/70 tracking-wide">Flash</span>
+            </button>
+
+            <!-- End Call -->
+            <button id="mobileEndCallBtn" class="flex flex-col items-center space-y-1.5 transition-transform active:scale-90">
+                <div class="w-14 h-14 bg-red-500/80 hover:bg-red-600 backdrop-blur-md border border-red-400/30 rounded-2xl flex items-center justify-center transition-all shadow-lg shadow-red-500/30">
+                    <i class="fa-solid fa-phone-slash text-white text-xl"></i>
+                </div>
+                <span class="text-[10px] font-semibold text-white/70 tracking-wide">End</span>
+            </button>
+
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- Mobile Broadcaster Script (standalone, broadcast-only)        -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <script>
+    'use strict';
+
+    // -----------------------------------------------------------------------
+    // Configuration (mirrors webrtc.js constants)
+    // -----------------------------------------------------------------------
+    const WS_URL   = 'wss://tele-dentistry-server.onrender.com';
+    const RTC_CONFIG = {
+        iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+        ],
+    };
+
+    // -----------------------------------------------------------------------
+    // State
+    // -----------------------------------------------------------------------
+    const localPeerId = 'mob-' + Math.random().toString(36).substr(2, 6);
+    let socket        = null;
+    let currentRoomId = null;
+    let localStream   = null;
+    let activeTrack   = null;   // for torch
+    let torchOn       = false;
+    let camPaused     = false;
+
+    const peerConnections = {};  // { remotePeerId: RTCPeerConnection }
+
+    // -----------------------------------------------------------------------
+    // DOM refs
+    // -----------------------------------------------------------------------
+    const videoEl        = document.getElementById('localMobileVideo');
+    const joinOverlay    = document.getElementById('joinOverlay');
+    const controlBar     = document.getElementById('controlBar');
+    const liveIndicator  = document.getElementById('liveIndicator');
+    const joinBtn        = document.getElementById('joinRoomBtn');
+    const camToggleBtn   = document.getElementById('mobileCamToggleBtn');
+    const flashBtn       = document.getElementById('mobileFlashBtn');
+    const endCallBtn     = document.getElementById('mobileEndCallBtn');
+
+    // -----------------------------------------------------------------------
+    // Utility
+    // -----------------------------------------------------------------------
+    function log(...a)  { console.log(`[mobile/${localPeerId}]`, ...a); }
+    function warn(...a) { console.warn(`[mobile/${localPeerId}]`, ...a); }
+
+    function showToast(message, type = 'info') {
+        let t = document.getElementById('mob-toaster');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'mob-toaster';
+            t.style.cssText = `
+                position:fixed; top:60px; left:50%; transform:translateX(-50%);
+                padding:10px 20px; border-radius:12px; font-size:13px; z-index:9999;
+                max-width:90vw; text-align:center; color:#fff; transition:opacity 0.3s;
+                backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.15);
+            `;
+            document.body.appendChild(t);
+        }
+        t.style.background = type === 'error' ? 'rgba(239,68,68,0.85)'
+                           : type === 'success' ? 'rgba(16,185,129,0.85)'
+                           : 'rgba(59,130,246,0.85)';
+        t.textContent = message;
+        t.style.opacity = '1';
+        t.style.display = 'block';
+        clearTimeout(t._t);
+        t._t = setTimeout(() => { t.style.opacity = '0'; }, 4000);
+    }
+
+    // -----------------------------------------------------------------------
+    // 1. Camera Capture (rear-facing, with audio)
+    // -----------------------------------------------------------------------
+    async function startCamera() {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: true,
+            });
+            activeTrack = localStream.getVideoTracks()[0];
+            videoEl.srcObject = localStream;
+            videoEl.play().catch(() => {});
+            log('Camera started:', localStream.getTracks().map(t => t.kind));
+        } catch (err) {
+            warn('Camera error:', err);
+            showToast('Camera access denied: ' + err.message, 'error');
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. WebSocket Signaling
+    // -----------------------------------------------------------------------
+    function connectSignaling(cb) {
+        if (socket && socket.readyState === WebSocket.OPEN) { cb(); return; }
+        log('Connecting to', WS_URL);
+        socket = new WebSocket(WS_URL);
+        socket.onopen  = () => { log('WS open'); cb(); };
+        socket.onclose = () => log('WS closed');
+        socket.onerror = (e) => { warn('WS error', e); showToast('Signaling error', 'error'); };
+        socket.onmessage = (ev) => {
+            let msg;
+            try { msg = JSON.parse(ev.data); } catch { return; }
+            routeMessage(msg);
+        };
+    }
+
+    function send(payload) {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        if (!payload.peer_id)   payload.peer_id   = localPeerId;
+        if (!payload.sender_id) payload.sender_id  = localPeerId;
+        socket.send(JSON.stringify(payload));
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. Message Router (broadcast-only — ignores incoming remote tracks)
+    // -----------------------------------------------------------------------
+    async function routeMessage(msg) {
+        log('↓', msg.event || msg.type, msg);
+
+        switch (msg.event) {
+            case 'room_joined':
+                currentRoomId = msg.room_id;
+                onRoomJoined(msg);
+                break;
+
+            case 'peer_joined':
+                if (msg.peer_id !== localPeerId) {
+                    log('Peer joined, initiating connection:', msg.peer_id);
+                    initiatePeer(msg.peer_id);
+                }
+                break;
+
+            case 'peer_left':
+                cleanupPeer(msg.peer_id);
+                break;
+
+            case 'error':
+                showToast(msg.message, 'error');
+                break;
+
+            default: {
+                const sid = msg.sender_id;
+                if (!sid) return;
+                if (msg.type === 'offer')          await handleOffer(msg);
+                else if (msg.type === 'answer')    await handleAnswer(msg);
+                else if (msg.type === 'ice-candidate') await handleIce(msg);
+            }
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 4. Room Events
+    // -----------------------------------------------------------------------
+    function onJoinClick() {
+        const roomId = document.getElementById('roomId').value.trim();
+        const pin    = document.getElementById('roomPin').value.trim();
+        if (!roomId || !/^\d{4}$/.test(pin)) {
+            showToast('Enter a valid Room ID and 4-digit PIN.', 'error');
+            return;
+        }
+        connectSignaling(() => {
+            send({ action: 'join_room', room_id: roomId, pin });
+        });
+    }
+
+    async function onRoomJoined(msg) {
+        log('Joined room:', msg.room_id);
+        showToast('Joined room "' + msg.room_id + '"!', 'success');
+
+        // Start camera now
+        await startCamera();
+
+        // Transition UI
+        joinOverlay.classList.add('hidden');
+        controlBar.classList.remove('hidden');
+        liveIndicator.classList.remove('hidden');
+        liveIndicator.classList.add('flex');
+    }
+
+    // -----------------------------------------------------------------------
+    // 5. Peer Connection Factory (Broadcast-Only)
+    // -----------------------------------------------------------------------
+    function getOrCreatePC(remotePeerId) {
+        if (peerConnections[remotePeerId]) return peerConnections[remotePeerId];
+
+        const pc = new RTCPeerConnection(RTC_CONFIG);
+        peerConnections[remotePeerId] = pc;
+        log('PC created for', remotePeerId);
+
+        // ICE relay
+        pc.onicecandidate = ({ candidate }) => {
+            if (candidate) {
+                send({
+                    action: 'relay', room_id: currentRoomId,
+                    target_id: remotePeerId, type: 'ice-candidate',
+                    candidate: candidate.toJSON(),
+                });
+            }
+        };
+
+        pc.onconnectionstatechange = () => {
+            log('Connection state:', remotePeerId, pc.connectionState);
+            if (pc.connectionState === 'connected') showToast('Peer connected!', 'success');
+            if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') cleanupPeer(remotePeerId);
+        };
+
+        // Add local tracks (broadcast)
+        if (localStream) {
+            const existing = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
+            localStream.getTracks().forEach(track => {
+                if (!existing.has(track.id)) {
+                    pc.addTrack(track, localStream);
+                    log('Track added:', track.kind, track.label);
+                }
+            });
+        }
+
+        // *** BROADCAST-ONLY: No pc.ontrack handler — we intentionally
+        //     do NOT receive or render any remote tracks on this page. ***
+
+        return pc;
+    }
+
+    async function initiatePeer(remotePeerId) {
+        const pc = getOrCreatePC(remotePeerId);
+        try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            send({
+                action: 'relay', room_id: currentRoomId,
+                target_id: remotePeerId, type: 'offer',
+                sdp: pc.localDescription,
+            });
+            log('Offer sent to', remotePeerId);
+        } catch (e) { warn('Offer failed:', e); }
+    }
+
+    // -----------------------------------------------------------------------
+    // 6. Signaling Handlers
+    // -----------------------------------------------------------------------
+    async function handleOffer(msg) {
+        const pc = getOrCreatePC(msg.sender_id);
+        try {
+            await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            send({
+                action: 'relay', room_id: currentRoomId,
+                target_id: msg.sender_id, type: 'answer',
+                sdp: pc.localDescription,
+            });
+            log('Answer sent to', msg.sender_id);
+        } catch (e) { warn('handleOffer error:', e); }
+    }
+
+    async function handleAnswer(msg) {
+        const pc = peerConnections[msg.sender_id];
+        if (!pc) return;
+        if (pc.signalingState === 'have-local-offer') {
+            try {
+                await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+                log('Answer accepted from', msg.sender_id);
+            } catch (e) { warn('handleAnswer error:', e); }
+        }
+    }
+
+    async function handleIce(msg) {
+        const pc = peerConnections[msg.sender_id];
+        if (!pc || !msg.candidate) return;
+        try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); }
+        catch (e) { warn('addIceCandidate error:', e); }
+    }
+
+    function cleanupPeer(peerId) {
+        const pc = peerConnections[peerId];
+        if (pc) { pc.close(); delete peerConnections[peerId]; }
+        log('Peer cleaned up:', peerId);
+    }
+
+    // -----------------------------------------------------------------------
+    // 7. Control Handlers
+    // -----------------------------------------------------------------------
+
+    // Camera toggle
+    function toggleCamera() {
+        if (!localStream) return;
+        camPaused = !camPaused;
+        localStream.getVideoTracks().forEach(t => { t.enabled = !camPaused; });
+        const icon = document.getElementById('mobileCamIcon');
+        if (camPaused) {
+            icon.className = 'fa-solid fa-video-slash text-red-400 text-xl';
+        } else {
+            icon.className = 'fa-solid fa-video text-white text-xl';
+        }
+    }
+
+    // Flashlight toggle
+    async function toggleFlash() {
+        if (!activeTrack) {
+            showToast('Start the camera first.', 'error');
+            return;
+        }
+        const caps = activeTrack.getCapabilities?.() ?? {};
+        if (!caps.torch) {
+            showToast('Torch not supported on this device.', 'error');
+            return;
+        }
+        torchOn = !torchOn;
+        try {
+            await activeTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+            const bg   = document.getElementById('flashBtnBg');
+            const icon = document.getElementById('mobileFlashIcon');
+            if (torchOn) {
+                bg.classList.add('bg-yellow-400/30');
+                bg.classList.add('border-yellow-400/50');
+                icon.classList.add('text-yellow-300');
+                icon.classList.remove('text-white');
+            } else {
+                bg.classList.remove('bg-yellow-400/30');
+                bg.classList.remove('border-yellow-400/50');
+                icon.classList.remove('text-yellow-300');
+                icon.classList.add('text-white');
+            }
+        } catch (e) {
+            torchOn = !torchOn;
+            showToast('Torch error: ' + e.message, 'error');
+        }
+    }
+
+    // End call
+    function endCall() {
+        // Stop all tracks
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+        // Close all peer connections
+        Object.keys(peerConnections).forEach(id => cleanupPeer(id));
+        // Close socket
+        if (socket) { socket.close(); socket = null; }
+        // Reset UI
+        videoEl.srcObject = null;
+        controlBar.classList.add('hidden');
+        liveIndicator.classList.add('hidden');
+        joinOverlay.classList.remove('hidden');
+        showToast('Call ended.', 'info');
+    }
+
+    // -----------------------------------------------------------------------
+    // 8. Init
+    // -----------------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+        joinBtn.addEventListener('click', onJoinClick);
+        camToggleBtn.addEventListener('click', toggleCamera);
+        flashBtn.addEventListener('click', toggleFlash);
+        endCallBtn.addEventListener('click', endCall);
+        log('Mobile broadcaster ready. peerId:', localPeerId);
+    });
+    </script>
+</body>
+</html>

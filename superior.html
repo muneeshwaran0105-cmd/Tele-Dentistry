@@ -48,6 +48,142 @@
             from { opacity: 0; transform: translateY(4px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* ── Dynamic Video Grid ─────────────────────────────────────── */
+        #dynamicVideoGrid {
+            display: grid;
+            gap: 12px;
+            padding: 12px;
+            width: 100%;
+            height: 100%;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Grid column presets driven by JS */
+        #dynamicVideoGrid.grid-1 { grid-template-columns: 1fr; }
+        #dynamicVideoGrid.grid-2 { grid-template-columns: repeat(2, 1fr); }
+        #dynamicVideoGrid.grid-3 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+        #dynamicVideoGrid.grid-4 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+        #dynamicVideoGrid.grid-5,
+        #dynamicVideoGrid.grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+        #dynamicVideoGrid.grid-many { grid-template-columns: repeat(3, 1fr); }
+
+        /* ── Video Tile ─────────────────────────────────────────────── */
+        .video-tile {
+            position: relative;
+            background: #0f172a;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 0;
+        }
+        .video-tile:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px rgba(59,130,246,0.25);
+        }
+        .video-tile video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        .video-tile .tile-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .video-tile .tile-label .status-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 6px rgba(16,185,129,0.8);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Focus Button on each tile */
+        .video-tile .focus-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 15;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s, transform 0.15s;
+            transform: scale(0.95);
+        }
+        .video-tile:hover .focus-btn,
+        .video-tile .focus-btn.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .video-tile .focus-btn:hover {
+            background: rgba(59,130,246,0.7);
+        }
+        .video-tile .focus-btn:active {
+            transform: scale(0.92);
+        }
+
+        /* Focus-mode tile: fill entire grid */
+        .video-tile.focused {
+            grid-column: 1 / -1;
+            grid-row: 1 / -1;
+            border-color: #3b82f6;
+            border-radius: 16px;
+        }
+        .video-tile.focused .focus-btn {
+            opacity: 1;
+            transform: scale(1);
+            background: rgba(239,68,68,0.7);
+        }
+        .video-tile.focused .focus-btn:hover {
+            background: rgba(239,68,68,0.9);
+        }
+
+        /* Hide non-focused tiles when focus mode is active */
+        #dynamicVideoGrid.focus-active .video-tile:not(.focused) {
+            display: none;
+        }
+
+        /* Empty-state placeholder inside the grid */
+        #gridEmptyState {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            gap: 12px;
+        }
+        #gridEmptyState i { font-size: 3.5rem; opacity: 0.3; }
+        #gridEmptyState p { font-size: 1rem; font-weight: 500; opacity: 0.7; letter-spacing: 0.02em; }
     </style>
 </head>
 <body class="text-slate-800 flex flex-col h-screen overflow-hidden">
@@ -137,97 +273,16 @@
             </div>
         </aside>
 
-        <!-- Center Column: Focus View (60%) -->
-        <section id="mainFeed" class="flex-grow xl:w-3/5 h-full bg-black rounded-2xl shadow-xl border border-slate-800 overflow-hidden relative group isolate transition-all duration-300">
-
-            <!-- Device Label Overlay (Top-Left) -->
-            <div class="absolute top-4 left-4 z-20 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-white/10 flex items-center space-x-2 shadow-lg">
-                <span class="relative flex h-2.5 w-2.5 mr-1">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                </span>
-                <span id="mainFeedLabel">Active Focus Feed</span>
-            </div>
-
-            <!-- Fullscreen Overlay (Top-Right) -->
-            <button id="fullscreenBtn" class="absolute top-4 right-4 z-20 bg-black/40 hover:bg-black/60 text-white w-9 h-9 flex items-center justify-center rounded-lg backdrop-blur-md transition-all border border-white/10 opacity-0 group-hover:opacity-100 shadow-lg" title="Fullscreen">
-                <i class="fa-solid fa-expand text-sm"></i>
-            </button>
-
-            <!-- Video Container -->
-            <div id="mainVideoContainer" class="absolute inset-0 flex items-center justify-center w-full h-full">
-                <!-- Requirement: Placeholder video with specific attributes -->
-                <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-contain z-10 hidden"></video>
-                <div id="mainFeedOverlay" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 pointer-events-none bg-slate-900">
-                    <i class="fa-solid fa-eye text-5xl sm:text-6xl mb-4 opacity-40"></i>
-                    <p class="text-base sm:text-lg font-medium opacity-80 tracking-wide text-slate-300">Awaiting primary stream connection</p>
+        <!-- Center Column: Dynamic Video Grid (fills remaining space) -->
+        <section class="flex-grow h-full bg-slate-900 rounded-2xl shadow-xl border border-slate-800 overflow-hidden relative">
+            <div id="dynamicVideoGrid" class="grid-1">
+                <!-- Empty state shown when no peers are connected -->
+                <div id="gridEmptyState">
+                    <i class="fa-solid fa-users-viewfinder"></i>
+                    <p>Waiting for participants to join…</p>
                 </div>
             </div>
-
-            <!-- Capture button moved to bottom control bar -->
-
         </section>
-
-        <!-- Right Column: PiP Stack (20%) -->
-        <aside id="pipSidebar" class="flex flex-row xl:flex-col w-full xl:w-1/5 xl:h-full gap-3 overflow-x-auto xl:overflow-x-hidden xl:overflow-y-auto pb-2 xl:pb-0 shrink-0">
-
-            <!-- Sub Feed 1 (PC) -->
-            <div id="pipSlot0" data-pip-label="Provider PC"
-                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
-                
-                <div id="pipVideo0" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
-                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
-                    <i class="fa-solid fa-desktop text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
-                </div>
-                
-                <!-- New Overlay Label Style (Bottom-Left) -->
-                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
-                    <span class="text-[10px] font-semibold tracking-wide">Provider PC</span>
-                </div>
-                
-                <!-- Status Dot (Top-Right) -->
-                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
-                    <span id="pipDot0" class="block h-2 w-2 rounded-full bg-slate-500"></span>
-                </div>
-            </div>
-
-            <!-- Sub Feed 2 (Mobile / Alternate) -->
-            <div id="pipSlot1" data-pip-label="Mobile Cam"
-                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
-                
-                <div id="pipVideo1" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
-                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
-                    <i class="fa-solid fa-mobile-screen text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
-                </div>
-                
-                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
-                    <span class="text-[10px] font-semibold tracking-wide">Mobile Cam</span>
-                </div>
-                
-                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
-                    <span id="pipDot1" class="block h-2 w-2 rounded-full bg-slate-500"></span>
-                </div>
-            </div>
-
-            <!-- Sub Feed 3 (USB/Extra) -->
-            <div id="pipSlot2" data-pip-label="USB Aux Cam"
-                 class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
-                
-                <div id="pipVideo2" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
-                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
-                    <i class="fa-brands fa-usb text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
-                </div>
-                
-                <div class="absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end">
-                    <span class="text-[10px] font-semibold tracking-wide">USB Aux</span>
-                </div>
-                
-                <div class="absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10">
-                    <span id="pipDot2" class="block h-2 w-2 rounded-full bg-slate-500"></span>
-                </div>
-            </div>
-
-        </aside>
 
     </main>
 
@@ -289,44 +344,17 @@
     <script src="ui.js"></script>
     <script src="webrtc.js"></script>
     
-    <!-- Enhancing dynamically generated PiP slots to match the new dark sleek style -->
-    <script>
-        // webrtc.js dynamically creates more cards via `buildPipSlot`
-        // We override its style classes on load via a MutationObserver on #pipSidebar
-        const pipObserver = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1 && node.hasAttribute('data-stream-id')) {
-                        // It's a dynamic slot
-                        node.className = 'relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate';
-                        
-                        // webrtc.js adds a header div. Let's convert it to the new overlay.
-                        const headerArea = node.querySelector('.bg-gray-800\\/80');
-                        if (headerArea) {
-                            const labelText = headerArea.querySelector('span.font-medium').textContent;
-                            headerArea.remove(); // Remove the old top bar
-                            
-                            // Add new bottom-left label
-                            const labelDiv = document.createElement('div');
-                            labelDiv.className = 'absolute bottom-2 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-1 rounded bg-gradient-to-r from-black/80 to-transparent flex flex-col justify-end pointer-events-none';
-                            labelDiv.innerHTML = `<span class="text-[10px] font-semibold tracking-wide">${labelText}</span>`;
-                            node.appendChild(labelDiv);
-                            
-                            // Add new top-right dot
-                            const dotDiv = document.createElement('div');
-                            dotDiv.className = 'absolute top-2 right-2 z-10 bg-black/40 backdrop-blur-sm p-1 rounded-full border border-white/10 pointer-events-none';
-                            dotDiv.innerHTML = `<span class="block h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>`;
-                            node.appendChild(dotDiv);
-                        }
-                    }
-                });
-            });
-        });
+    <!-- Phase 10: Dynamic Grid is now handled entirely by webrtc.js -->
 
-        const sidebar = document.getElementById('pipSidebar');
-        if(sidebar) {
-            pipObserver.observe(sidebar, { childList: true });
-        }
+    <!-- Phase 9: Draggable PiP -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Make the Consultant's local self-view PiP draggable
+            const localPip = document.getElementById('localPreviewContainer');
+            if (localPip && typeof makeDraggable === 'function') {
+                makeDraggable(localPip);
+            }
+        });
     </script>
 </body>
 </html>

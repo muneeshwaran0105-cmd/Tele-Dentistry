@@ -165,6 +165,119 @@ window.appendEventLog = function(message) {
 };
 
 // ---------------------------------------------------------------------------
+// 4. Draggable PiP Utility (Phase 9)
+// ---------------------------------------------------------------------------
+
+/**
+ * Makes any positioned element draggable via mouse and touch.
+ * The element is constrained to stay within the browser viewport.
+ *
+ * @param {HTMLElement} element — the element to make draggable
+ */
+function makeDraggable(element) {
+    if (!element) return;
+
+    // Ensure the element is absolutely positioned so top/left work
+    const computed = window.getComputedStyle(element);
+    if (computed.position === 'static') {
+        element.style.position = 'absolute';
+    }
+
+    let isDragging = false;
+    let startX, startY;       // pointer start coords
+    let origLeft, origTop;    // element position at drag start
+    let hasMoved = false;     // distinguishes drag from click
+
+    function getPointerPos(e) {
+        if (e.touches && e.touches.length) {
+            return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+    }
+
+    function onPointerDown(e) {
+        // Ignore right-click
+        if (e.button && e.button !== 0) return;
+
+        isDragging = true;
+        hasMoved = false;
+
+        const pos = getPointerPos(e);
+        startX = pos.x;
+        startY = pos.y;
+
+        // Read current position (support both fixed and absolute)
+        const rect = element.getBoundingClientRect();
+        origLeft = rect.left;
+        origTop  = rect.top;
+
+        // Boost z-index while dragging
+        element._savedZIndex = element.style.zIndex;
+        element.style.zIndex = '9999';
+        element.style.transition = 'none'; // disable transitions during drag
+        element.style.cursor = 'grabbing';
+    }
+
+    function onPointerMove(e) {
+        if (!isDragging) return;
+
+        const pos = getPointerPos(e);
+        const dx = pos.x - startX;
+        const dy = pos.y - startY;
+
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            hasMoved = true;
+        }
+
+        let newLeft = origLeft + dx;
+        let newTop  = origTop  + dy;
+
+        // Constrain to viewport
+        const elW = element.offsetWidth;
+        const elH = element.offsetHeight;
+        const vpW = window.innerWidth;
+        const vpH = window.innerHeight;
+
+        newLeft = Math.max(0, Math.min(newLeft, vpW - elW));
+        newTop  = Math.max(0, Math.min(newTop,  vpH - elH));
+
+        // Apply via fixed positioning (since PiP containers use position:fixed)
+        element.style.position = 'fixed';
+        element.style.left  = newLeft + 'px';
+        element.style.top   = newTop  + 'px';
+        // Clear right/bottom so they don't conflict
+        element.style.right  = 'auto';
+        element.style.bottom = 'auto';
+
+        // Prevent page scroll on touch devices
+        if (e.cancelable) e.preventDefault();
+    }
+
+    function onPointerUp() {
+        if (!isDragging) return;
+        isDragging = false;
+
+        // Restore z-index and cursor
+        element.style.zIndex = element._savedZIndex || '';
+        element.style.transition = '';
+        element.style.cursor = 'move';
+    }
+
+    // Mouse events
+    element.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('mousemove', onPointerMove);
+    document.addEventListener('mouseup', onPointerUp);
+
+    // Touch events
+    element.addEventListener('touchstart', onPointerDown, { passive: false });
+    document.addEventListener('touchmove', onPointerMove, { passive: false });
+    document.addEventListener('touchend', onPointerUp);
+
+    // Visual hint
+    element.style.cursor = 'move';
+}
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {

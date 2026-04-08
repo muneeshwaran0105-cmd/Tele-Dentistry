@@ -283,5 +283,16 @@
         observer.observe(document.getElementById('pcIndicator'), {attributes: true, attributeFilter: ['class']});
         observer.observe(document.getElementById('intaoralIndicator'), {attributes: true, attributeFilter: ['class']});
     </script>
+
+    <!-- Phase 9: Draggable PiP -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Make the Consultant's remote PiP draggable
+            const consultantPip = document.getElementById('consultantPipContainer');
+            if (consultantPip && typeof makeDraggable === 'function') {
+                makeDraggable(consultantPip);
+            }
+        });
+    </script>
 </body>
 </html>

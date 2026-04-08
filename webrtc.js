@@ -1,12 +1,14 @@
 /**
- * webrtc.js — Teledentistry Phase 8: Bi-Directional AV Mesh
- * ==========================================================
- * Full two-way video & audio conferencing over a multi-peer mesh.
+ * webrtc.js — Teledentistry Phase 10: Dynamic Video Grid & Focus Mode
+ * ====================================================================
+ * Full two-way video & audio conferencing over a multi-peer mesh,
+ * with a Zoom/Meet-style dynamic CSS grid on the Consultant dashboard.
  *
  * Roles:
  *   • DENTIST   (dentist.html)  — sends local camera/USB tracks,
  *                                  receives Consultant AV into floating PiP
- *   • SUPERIOR  (superior.html) — receives Provider tracks into focus view,
+ *   • SUPERIOR  (superior.html) — receives Provider tracks into a dynamic
+ *                                  grid, supports Focus Mode per tile,
  *                                  captures & broadcasts own camera/mic
  */
 
@@ -432,85 +434,194 @@ function handleConsultantRemoteTrack(stream) {
 }
 
 // ===========================================================================
-// SECTION F — Superior: Remote Track & Focus Mode UI
+// SECTION F — Superior: Dynamic Video Grid, Focus Mode & Cleanup
 // ===========================================================================
 
-let pipSlotIndex = 0;
+/**
+ * Creates or retrieves a video tile for a given senderId.
+ * Each tile contains: <video>, a floating label, and a Focus button.
+ *
+ * @param {string} senderId — the remote peer ID
+ * @returns {{ tile: HTMLElement, video: HTMLVideoElement }}
+ */
+function getOrCreateVideoTile(senderId) {
+  const grid = document.getElementById('dynamicVideoGrid');
+  if (!grid) return { tile: null, video: null };
 
-function handleRemoteTrack(track, stream, peerId) {
-  // Deduplicate streams
-  if (remoteStreams.has(stream.id)) {
-    const existing = remoteStreams.get(stream.id);
-    if (!existing.stream.getTrackById(track.id)) existing.stream.addTrack(track);
-    return;
+  // ── State Preservation: Reuse existing tile ──────────────────────
+  const existingVideo = document.getElementById(`video-${senderId}`);
+  if (existingVideo) {
+    const existingTile = document.getElementById(`tile-${senderId}`);
+    return { tile: existingTile, video: existingVideo };
   }
 
-  const mainContainer = document.getElementById('mainVideoContainer');
+  // ── Build new tile ───────────────────────────────────────────────
+  const tile = document.createElement('div');
+  tile.className = 'video-tile fade-in';
+  tile.id = `tile-${senderId}`;
 
-  if (remoteStreams.size === 0 && mainContainer) {
-    injectVideo(mainContainer, stream, 'primary');
-    remoteStreams.set(stream.id, { stream, peerId, slotEl: mainContainer, slotIndex: -1 });
+  // Video element
+  const video = document.createElement('video');
+  video.id = `video-${senderId}`;
+  video.autoplay = true;
+  video.playsInline = true;
+  video.muted = true;
+  video.setAttribute('autoplay', '');
+  video.setAttribute('playsinline', '');
+  video.setAttribute('muted', '');
+  tile.appendChild(video);
 
-    document.getElementById('mainFeedOverlay')?.setAttribute('style', 'display:none');
-    updateMainFeedLabel(`Live View (${peerId})`);
+  // Label overlay (bottom-left)
+  const label = document.createElement('div');
+  label.className = 'tile-label';
+  label.innerHTML = `<span class="status-dot"></span><span>${senderId}</span>`;
+  tile.appendChild(label);
 
-    const dot0 = document.getElementById('pipDot0');
-    if (dot0) dot0.className = 'h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)]';
+  // Focus button (top-right, visible on hover)
+  const focusBtn = document.createElement('button');
+  focusBtn.className = 'focus-btn';
+  focusBtn.innerHTML = '<i class="fa-solid fa-expand"></i> Focus';
+  focusBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleFocusMode(senderId);
+  });
+  tile.appendChild(focusBtn);
 
+  // Hide the empty-state placeholder
+  const emptyState = document.getElementById('gridEmptyState');
+  if (emptyState) emptyState.style.display = 'none';
+
+  grid.appendChild(tile);
+  updateGridLayout();
+
+  return { tile, video };
+}
+
+/**
+ * Counts children video-tiles in the grid and applies the correct
+ * CSS grid class (grid-1, grid-2, …, grid-many).
+ */
+function updateGridLayout() {
+  const grid = document.getElementById('dynamicVideoGrid');
+  if (!grid) return;
+
+  const tiles = grid.querySelectorAll('.video-tile');
+  const count = tiles.length;
+
+  // Strip old grid-* classes
+  grid.className = grid.className.replace(/\bgrid-\S+/g, '').trim();
+
+  if (count === 0) {
+    grid.classList.add('grid-1');
+    const emptyState = document.getElementById('gridEmptyState');
+    if (emptyState) emptyState.style.display = '';
+  } else if (count <= 6) {
+    grid.classList.add(`grid-${count}`);
   } else {
-    const slotIndex = pipSlotIndex++;
-    const container = document.getElementById(`pipVideo${slotIndex}`);
-    if (container) {
-      injectVideo(container, stream, 'pip');
-      remoteStreams.set(stream.id, { stream, peerId, slotEl: container, slotIndex });
-
-      const dot = document.getElementById(`pipDot${slotIndex}`);
-      if (dot) dot.className = 'h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)]';
-
-      const slot = document.getElementById(`pipSlot${slotIndex}`);
-      if (slot) slot.addEventListener('click', () => focusStream(stream));
-    }
+    grid.classList.add('grid-many');
   }
+}
 
+/**
+ * Phase 10: Dynamic ontrack handler for the Superior role.
+ * Checks if a tile for the senderId already exists (state preservation for
+ * camera toggle re-negotiation) and creates one if it doesn't.
+ */
+function handleRemoteTrack(track, stream, peerId) {
+  const { tile, video } = getOrCreateVideoTile(peerId);
+  if (!video || !tile) return;
+
+  // Update srcObject — handles both new streams and camera toggle re-offers
+  video.srcObject = stream;
+  video.play().catch(e => console.error('Autoplay blocked:', e));
+
+  // Track the stream for cleanup
+  remoteStreams.set(stream.id, { stream, peerId, tileId: `tile-${peerId}` });
+
+  // If the track ends (e.g. camera stopped), we keep the tile but can gray it out
   track.onended = () => {
-    if (remoteStreams.has(stream.id)) clearRemoteSlot(stream.id);
+    log(`Track ended from ${peerId}: ${track.kind}`);
   };
 }
 
-function clearRemoteSlot(streamId) {
-  const entry = remoteStreams.get(streamId);
-  if (!entry) return;
+/**
+ * Toggles Focus Mode on a specific tile.
+ * - Focus: hides all other tiles, expands the focused tile to fill the grid.
+ * - Exit:  restores all tiles to normal grid layout.
+ */
+function toggleFocusMode(senderId) {
+  const grid = document.getElementById('dynamicVideoGrid');
+  const tile = document.getElementById(`tile-${senderId}`);
+  if (!grid || !tile) return;
 
-  const { slotEl, slotIndex } = entry;
-  const vid = slotEl.querySelector('video');
-  if (vid) { vid.srcObject = null; vid.classList.add('hidden'); }
+  const isFocused = tile.classList.contains('focused');
 
-  if (slotIndex === -1) {
-    document.getElementById('mainFeedOverlay')?.removeAttribute('style');
-    updateMainFeedLabel('Active Focus Feed');
-    const dot = document.getElementById('pipDot0');
-    if (dot) dot.className = 'h-2 w-2 rounded-full bg-gray-500';
-  } else if (slotIndex >= 0) {
-    const dot = document.getElementById(`pipDot${slotIndex}`);
-    if (dot) dot.className = 'h-2 w-2 rounded-full bg-gray-500';
+  if (isFocused) {
+    // ── Exit Focus Mode ───────────────────────────────────────────
+    tile.classList.remove('focused');
+    grid.classList.remove('focus-active');
+
+    const btn = tile.querySelector('.focus-btn');
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-expand"></i> Focus';
+
+    log(`Exited focus mode for ${senderId}`);
+  } else {
+    // ── Enter Focus Mode ──────────────────────────────────────────
+    // Remove focus from any other tile first
+    grid.querySelectorAll('.video-tile.focused').forEach(t => {
+      t.classList.remove('focused');
+      const b = t.querySelector('.focus-btn');
+      if (b) b.innerHTML = '<i class="fa-solid fa-expand"></i> Focus';
+    });
+
+    tile.classList.add('focused');
+    grid.classList.add('focus-active');
+
+    const btn = tile.querySelector('.focus-btn');
+    if (btn) btn.innerHTML = '<i class="fa-solid fa-compress"></i> Exit Focus';
+
+    log(`Entered focus mode for ${senderId}`);
   }
-
-  remoteStreams.delete(streamId);
 }
 
+/**
+ * Removes a disconnected peer's tile from the grid and recalculates layout.
+ */
 function cleanupPeer(peerId) {
   log(`Cleaning up peer: ${peerId}`);
 
+  // Close the RTCPeerConnection
   const pc = peerConnections[peerId];
   if (pc) {
     pc.close();
     delete peerConnections[peerId];
   }
 
-  // Clear streams from that peer
+  // Clear tracked streams belonging to this peer
   [...remoteStreams.entries()].forEach(([streamId, entry]) => {
-    if (entry.peerId === peerId) clearRemoteSlot(streamId);
+    if (entry.peerId === peerId) {
+      remoteStreams.delete(streamId);
+    }
   });
+
+  // ── Phase 10: Remove the tile from the dynamic grid ─────────────
+  if (role === 'superior') {
+    const tile = document.getElementById(`tile-${peerId}`);
+    if (tile) {
+      // If this tile was focused, exit focus mode first
+      const grid = document.getElementById('dynamicVideoGrid');
+      if (tile.classList.contains('focused') && grid) {
+        grid.classList.remove('focus-active');
+      }
+
+      // Cleanly stop the video
+      const vid = tile.querySelector('video');
+      if (vid) vid.srcObject = null;
+
+      tile.remove();
+      updateGridLayout();
+    }
+  }
 
   // On dentist side, hide consultant PiP if the consultant left
   if (role === 'dentist') {
@@ -524,7 +635,7 @@ function cleanupPeer(peerId) {
 }
 
 // ---------------------------------------------------------------------------
-// UI Helpers
+// UI Helpers (kept for dentist side compatibility)
 // ---------------------------------------------------------------------------
 
 function injectVideo(container, stream, type) {
@@ -548,33 +659,6 @@ function injectVideo(container, stream, type) {
 function updateMainFeedLabel(label) {
   const el = document.getElementById('mainFeedLabel');
   if (el) el.textContent = label;
-}
-
-function focusStream(streamToFocus) {
-  const mainVideo = document.getElementById('mainVideoContainer')?.querySelector('video');
-  if (!mainVideo) return;
-
-  const currentMainStream = mainVideo.srcObject;
-  if (currentMainStream?.id === streamToFocus.id) return;
-
-  const clickedEntry = [...remoteStreams.values()].find(e => e.stream.id === streamToFocus.id);
-  if (!clickedEntry) return;
-
-  const pipVideoEl = clickedEntry.slotEl.querySelector('video');
-
-  mainVideo.srcObject = streamToFocus;
-  mainVideo.play().catch(() => {});
-
-  if (pipVideoEl && currentMainStream) {
-    pipVideoEl.srcObject = currentMainStream;
-    pipVideoEl.play().catch(() => {});
-  }
-
-  const mainEntry = [...remoteStreams.values()].find(e => e.slotIndex === -1);
-  if (mainEntry) mainEntry.slotEl = clickedEntry.slotEl;
-  clickedEntry.slotEl = document.getElementById('mainVideoContainer');
-
-  updateMainFeedLabel(`Live View (${clickedEntry.peerId})`);
 }
 
 function handleCameraStoppedMsg(msg) {
