@@ -367,6 +367,19 @@ async function handleOffer(msg) {
   const senderId = msg.sender_id;
   const pc = getOrCreatePeerConnection(senderId);
 
+  // 2. INJECT TRACKS IMMEDIATELY (Critical Fix)
+  if (window.localStream) {
+      window.localStream.getTracks().forEach(track => {
+          const existingTrackIds = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
+          if (!existingTrackIds.has(track.id)) {
+              pc.addTrack(track, window.localStream);
+              log(`[webrtc] Added local track (${track.kind}) to answer for ${senderId}`);
+          }
+      });
+  } else {
+      warn(`[webrtc] Warning: No localStream available when answering offer from ${senderId}`);
+  }
+
   try {
     await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
     const answer = await pc.createAnswer();

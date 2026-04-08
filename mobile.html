@@ -235,6 +235,7 @@
                 audio: true,
             });
             activeTrack = localStream.getVideoTracks()[0];
+            window.localStream = localStream; // Global access
             videoEl.srcObject = localStream;
             videoEl.play().catch(() => {});
             log('Camera started:', localStream.getTracks().map(t => t.kind));
@@ -368,11 +369,11 @@
         };
 
         // Add local tracks (broadcast)
-        if (localStream) {
+        if (window.localStream) {
             const existing = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
-            localStream.getTracks().forEach(track => {
+            window.localStream.getTracks().forEach(track => {
                 if (!existing.has(track.id)) {
-                    pc.addTrack(track, localStream);
+                    pc.addTrack(track, window.localStream);
                     log('Track added:', track.kind, track.label);
                 }
             });
@@ -387,6 +388,8 @@
     async function initiatePeer(remotePeerId) {
         const pc = getOrCreatePC(remotePeerId);
         try {
+            // Tracks are added automatically in getOrCreatePC when creating offers
+
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             send({
@@ -403,14 +406,33 @@
     // -----------------------------------------------------------------------
     async function handleOffer(msg) {
         const pc = getOrCreatePC(msg.sender_id);
-        if (localStream) {
+        // 1. Ensure stream exists FIRST
+        if (!window.localStream) { 
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: true,
+                });
+                activeTrack = localStream.getVideoTracks()[0];
+                window.localStream = localStream;
+                videoEl.srcObject = localStream;
+                videoEl.play().catch(() => {});
+            } catch (err) {
+                warn('Force-camera access denied on offer:', err);
+            }
+        }
+
+        // 2. INJECT TRACKS IMMEDIATELY 
+        if (window.localStream) {
             const existing = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
-            localStream.getTracks().forEach(track => {
+            window.localStream.getTracks().forEach(track => {
                 if (!existing.has(track.id)) {
-                    pc.addTrack(track, localStream);
+                    pc.addTrack(track, window.localStream);
                     log('Track added on offer:', track.kind, track.label);
                 }
             });
+        } else {
+            console.warn(`[webrtc] Warning: No localStream available when answering offer from ${msg.sender_id}`);
         }
         try {
             await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
