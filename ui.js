@@ -129,6 +129,9 @@ function setupMediaToggles() {
                 }
                 if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
             }
+            if (typeof window.sendMediaState === 'function') {
+                window.sendMediaState(!isCameraPaused);
+            }
         });
     }
 }

@@ -161,6 +161,7 @@ async function routeSignalingMessage(msg) {
       else if (msg.type === 'answer')    { await handleAnswer(msg); }
       else if (msg.type === 'ice-candidate') { await handleIceCandidate(msg); }
       else if (msg.type === 'camera_stopped') { handleCameraStoppedMsg(msg); }
+      else if (msg.type === 'media_state') { handleMediaStateMsg(msg); }
   }
 }
 
@@ -665,6 +666,55 @@ function handleCameraStoppedMsg(msg) {
   showToast(`Peer ${msg.sender_id} stopped their camera.`, 'info');
 }
 
+function handleMediaStateMsg(msg) {
+  const isVideoOn = msg.video;
+  const peerId = msg.sender_id;
+
+  if (role === 'superior') {
+    const tile = document.getElementById(`tile-${peerId}`);
+    if (tile) {
+      const video = tile.querySelector('video');
+      let placeholder = tile.querySelector('.cam-off-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.className = 'cam-off-placeholder absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 z-0';
+        placeholder.innerHTML = '<i class="fa-solid fa-video-slash text-4xl mb-2"></i><span class="text-xs">Camera Off</span>';
+        tile.insertBefore(placeholder, tile.firstChild);
+      }
+      if (isVideoOn) {
+        if (video) video.style.visibility = '';
+        placeholder.style.display = 'none';
+        if (video) video.play().catch(e => console.error(e));
+      } else {
+        if (video) video.style.visibility = 'hidden';
+        placeholder.style.display = 'flex';
+      }
+    }
+  }
+
+  if (role === 'dentist') {
+    const consultantVideo = document.getElementById('consultantRemoteVideo');
+    if (consultantVideo) {
+      const container = document.getElementById('consultantPipContainer');
+      let placeholder = container.querySelector('.cam-off-placeholder');
+      if (!placeholder) {
+        placeholder = document.createElement('div');
+        placeholder.className = 'cam-off-placeholder absolute inset-0 flex flex-col items-center justify-center bg-slate-800 text-slate-400 z-0 rounded-2xl overflow-hidden';
+        placeholder.innerHTML = '<i class="fa-solid fa-video-slash text-2xl mb-1"></i><span class="text-[10px]">Off</span>';
+        container.insertBefore(placeholder, container.firstChild);
+      }
+      if (isVideoOn) {
+        consultantVideo.style.visibility = '';
+        placeholder.style.display = 'none';
+        consultantVideo.play().catch(e => console.error(e));
+      } else {
+        consultantVideo.style.visibility = 'hidden';
+        placeholder.style.display = 'flex';
+      }
+    }
+  }
+}
+
 // ===========================================================================
 // SECTION G — Phase 8: Consultant Local Media Capture
 // ===========================================================================
@@ -743,6 +793,10 @@ function stopConsultantMedia() {
   if (previewVideo) previewVideo.srcObject = null;
   if (previewContainer) previewContainer.style.display = 'none';
 
+  // Remote PCs should remove the track if we want to cleanly stop
+  // But renegotiation or simply sending WS media_state: false works best to avoid freeze.
+  sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: false });
+
   log('Consultant media stopped.');
 }
 
@@ -785,6 +839,8 @@ function toggleConsultantCam() {
       ? 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
       : 'fa-solid fa-camera text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
   }
+  
+  sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });
   log('Consultant cam:', consultantCamPaused ? 'OFF' : 'ON');
 }
 
@@ -808,11 +864,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const micToggle = document.getElementById('consultantMicToggleBtn');
     const camToggle = document.getElementById('consultantCamToggleBtn');
 
-    if (startCamBtn) startCamBtn.addEventListener('click', startConsultantMedia);
+    if (startCamBtn) {
+      startCamBtn.addEventListener('click', () => {
+        if (localConsultantStream) {
+          stopConsultantMedia();
+          const span = startCamBtn.querySelector('span');
+          if (span) span.textContent = 'Start Cam';
+        } else {
+          startConsultantMedia().then(() => {
+            if (localConsultantStream) {
+               sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });
+               const span = startCamBtn.querySelector('span');
+               if (span) span.textContent = 'Stop Cam';
+            }
+          });
+        }
+      });
+    }
     if (micToggle) micToggle.addEventListener('click', toggleConsultantMic);
     if (camToggle) camToggle.addEventListener('click', toggleConsultantCam);
   }
+
+  const endCallBtn = document.getElementById('endCallBtn');
+  if (endCallBtn) {
+    endCallBtn.addEventListener('click', () => {
+      if (socket) socket.close();
+      window.location.reload(); // Quick way to reset state
+    });
+  }
+
+  // Handle tab closing explicitly
+  window.addEventListener('beforeunload', () => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      // WS close triggers peer_left from the server automatically
+      socket.close();
+    }
+  });
+
 });
+
+// Expose for ui.js specifically for Provider
+window.sendMediaState = function(isVideoOn) {
+  sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: isVideoOn });
+};
 
 // Expose so media.js can call it after camera starts on dentist side
 window.addLocalTracksIfConnected = function () {

@@ -231,7 +231,7 @@
     async function startCamera() {
         try {
             localStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
                 audio: true,
             });
             activeTrack = localStream.getVideoTracks()[0];
@@ -301,6 +301,7 @@
                 if (msg.type === 'offer')          await handleOffer(msg);
                 else if (msg.type === 'answer')    await handleAnswer(msg);
                 else if (msg.type === 'ice-candidate') await handleIce(msg);
+                else if (msg.type === 'media_state') handleMediaState(msg);
             }
         }
     }
@@ -397,6 +398,15 @@
     // -----------------------------------------------------------------------
     async function handleOffer(msg) {
         const pc = getOrCreatePC(msg.sender_id);
+        if (localStream) {
+            const existing = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
+            localStream.getTracks().forEach(track => {
+                if (!existing.has(track.id)) {
+                    pc.addTrack(track, localStream);
+                    log('Track added on offer:', track.kind, track.label);
+                }
+            });
+        }
         try {
             await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
             const answer = await pc.createAnswer();
@@ -449,6 +459,7 @@
         } else {
             icon.className = 'fa-solid fa-video text-white text-xl';
         }
+        send({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !camPaused });
     }
 
     // Flashlight toggle
@@ -494,7 +505,10 @@
         // Close all peer connections
         Object.keys(peerConnections).forEach(id => cleanupPeer(id));
         // Close socket
-        if (socket) { socket.close(); socket = null; }
+        if (socket) {
+            socket.close(); 
+            socket = null; 
+        }
         // Reset UI
         videoEl.srcObject = null;
         controlBar.classList.add('hidden');
