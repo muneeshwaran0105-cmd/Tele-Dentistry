@@ -148,11 +148,12 @@ async function startMobileCamera() {
   try {
     const constraints = {
       video: { facingMode: { exact: 'environment' } }, // rear-facing only
-      audio: false,
+      audio: true, // Phase 19 fix: enable two-way audio
     };
 
     pcStream   = await navigator.mediaDevices.getUserMedia(constraints);
     window.pcStream = pcStream;
+    window.localStream = pcStream; // Phase 19: Align for handleOffer in webrtc.js
     activeTrack = pcStream.getVideoTracks()[0];
 
     injectVideo(pcFeedPlaceholder, pcStream, 'Mobile Camera');
@@ -173,8 +174,9 @@ async function startMobileCamera() {
 async function startDesktopCameras() {
   // --- Primary webcam -------------------------------------------
   try {
-    pcStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    pcStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     window.pcStream = pcStream;
+    window.localStream = pcStream; // Phase 19: Align for handleOffer in webrtc.js
     injectVideo(pcFeedPlaceholder, pcStream, 'PC Camera');
     setIndicator('pc', 'live');
     updateStartBtn(true);
