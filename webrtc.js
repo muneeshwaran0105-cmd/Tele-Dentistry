@@ -785,42 +785,21 @@ async function startConsultantMedia() {
 async function stopConsultantMedia() {
   if (!localConsultantStream) return;
 
-  // Stop local tracks
-  localConsultantStream.getTracks().forEach(t => t.stop());
-  localConsultantStream = null;
-
-  const previewVideo = document.getElementById('localConsultantVideo');
-  const previewContainer = document.getElementById('localPreviewContainer');
-  if (previewVideo) previewVideo.srcObject = null;
-  if (previewContainer) previewContainer.style.display = 'none';
+  // REPLACED WITH SOFT TOGGLE: DO NOT use track.stop() or removeTrack()
+  consultantCamPaused = true;
+  localConsultantStream.getVideoTracks().forEach(t => { t.enabled = false; });
+  
+  // Update internal toggle button to match state
+  const camToggle = document.getElementById('consultantCamToggleBtn');
+  const icon = camToggle?.querySelector('i');
+  if (icon) {
+    icon.className = 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6';
+  }
 
   // Send WS media_state false payload
   sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: false });
 
-  // Renegotiate track removal across all peer connections
-  for (const [peerId, pc] of Object.entries(peerConnections)) {
-    // Call pc.removeTrack(sender) for existing senders
-    pc.getSenders().forEach(sender => {
-      pc.removeTrack(sender);
-    });
-
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      sendSignal({
-        action: 'relay',
-        room_id: currentRoomId,
-        target_id: peerId,
-        type: 'offer',
-        sdp: pc.localDescription,
-      });
-      log(`Renegotiation offer sent to ${peerId} after stopping media.`);
-    } catch (err) {
-      warn(`Renegotiation failed on stop media for ${peerId}:`, err);
-    }
-  }
-
-  log('Consultant media stopped and tracks removed.');
+  log('Consultant media soft-paused.');
 }
 
 /**
@@ -889,18 +868,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (startCamBtn) {
       startCamBtn.addEventListener('click', () => {
-        if (localConsultantStream) {
-          stopConsultantMedia();
-          const span = startCamBtn.querySelector('span');
-          if (span) span.textContent = 'Start Cam';
-        } else {
+        if (!localConsultantStream) {
           startConsultantMedia().then(() => {
             if (localConsultantStream) {
-               sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });
+               sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: true });
                const span = startCamBtn.querySelector('span');
-               if (span) span.textContent = 'Stop Cam';
+               if (span) span.textContent = 'Pause Cam';
             }
           });
+        } else {
+          // Soft toggle logic matching Phase 13
+          consultantCamPaused = !consultantCamPaused;
+          localConsultantStream.getVideoTracks().forEach(t => { t.enabled = !consultantCamPaused; });
+          
+          sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });
+          
+          const span = startCamBtn.querySelector('span');
+          if (span) span.textContent = consultantCamPaused ? 'Resume Cam' : 'Pause Cam';
+          
+          // Also sync the minor toggle button
+          const camToggle = document.getElementById('consultantCamToggleBtn');
+          const minorIcon = camToggle?.querySelector('i');
+          if (minorIcon) {
+            minorIcon.className = consultantCamPaused
+              ? 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
+              : 'fa-solid fa-camera text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+          }
         }
       });
     }
