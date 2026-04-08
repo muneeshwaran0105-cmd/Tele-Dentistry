@@ -11,6 +11,8 @@ import asyncio
 import json
 import random
 import logging
+import os
+import http
 import websockets
 from typing import Optional, Union
 
@@ -275,15 +277,34 @@ async def handler(ws: websockets.WebSocketServerProtocol) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Health Check (for Cloud Deployment)
+# ---------------------------------------------------------------------------
+
+async def health_check(connection, request):
+    """
+    Handle HTTP health check requests for cloud load balancers.
+    If the path is /healthz, returns a 200 OK response.
+    """
+    if request.path == "/healthz":
+        return connection.respond(http.HTTPStatus.OK, "OK\n")
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Entry Point
 # ---------------------------------------------------------------------------
 
-HOST = "0.0.0.0"   # accept connections from LAN devices (phone, consultant PC)
-PORT = 8765
+HOST = "0.0.0.0"   # accept external traffic
+PORT = int(os.environ.get("PORT", 8765))
 
 async def main() -> None:
     log.info("Signaling server starting on ws://%s:%d", HOST, PORT)
-    async with websockets.serve(handler, HOST, PORT):
+    async with websockets.serve(
+        handler, 
+        HOST, 
+        PORT, 
+        process_request=health_check
+    ):
         log.info("Server ready. Waiting for connections...")
         await asyncio.Future()   # run forever
 
