@@ -487,12 +487,14 @@ function getOrCreateVideoTile(senderId) {
   // Video element
   const video = document.createElement('video');
   video.id = `video-${senderId}`;
-  video.autoplay = true;
-  video.playsInline = true;
-  video.muted = true;
+  
+  // Phase 16: iOS Safari Attributes (Attributes FIRST, then srcObject later)
   video.setAttribute('autoplay', '');
   video.setAttribute('playsinline', '');
-  video.setAttribute('muted', '');
+  video.playsInline = true; 
+  video.autoplay = true;
+  // DO NOT set muted here for remote feeds
+  
   tile.appendChild(video);
 
   // Label overlay (bottom-left)
@@ -557,7 +559,25 @@ function handleRemoteTrack(track, stream, peerId) {
 
   // Update srcObject — handles both new streams and camera toggle re-offers
   video.srcObject = stream;
-  video.play().catch(e => console.error('Autoplay blocked:', e));
+  video.play().catch(error => {
+    console.warn("[webrtc] Safari Autoplay Blocked. Spawning Play button.", error);
+    
+    // Check if button already exists
+    if (tile.querySelector('.safari-play-btn')) return;
+
+    const playBtn = document.createElement('button');
+    playBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> Tap to Play Video';
+    playBtn.className = "safari-play-btn absolute inset-0 m-auto w-48 h-12 bg-blue-600 text-white rounded-full z-50 shadow-lg font-bold flex items-center justify-center transform active:scale-95 transition-all";
+
+    playBtn.onclick = (e) => {
+        e.stopPropagation();
+        video.play().then(() => {
+            playBtn.remove(); 
+        }).catch(err => console.error("Play failed even after click:", err));
+    };
+
+    tile.appendChild(playBtn);
+  });
 
   // Track the stream for cleanup
   remoteStreams.set(stream.id, { stream, peerId, tileId: `tile-${peerId}` });
@@ -668,16 +688,32 @@ function injectVideo(container, stream, type) {
     video = document.createElement('video');
     container.appendChild(video);
   }
-  video.autoplay = true;
-  video.muted = true;
-  video.playsInline = true;
   video.setAttribute('autoplay', '');
   video.setAttribute('playsinline', '');
-  video.setAttribute('muted', '');
+  video.playsInline = true;
+  video.autoplay = true;
+  // For remote Consultant feed on Dentist side, we want audio
+  
   video.className = 'absolute inset-0 w-full h-full z-10 ' + (type === 'primary' ? 'object-contain' : 'object-cover');
   video.srcObject = stream;
   video.classList.remove('hidden');
-  video.play().catch(e => console.error('Autoplay blocked:', e));
+  
+  video.play().catch(error => {
+    console.warn("[webrtc] Safari Autoplay (PiP) Blocked. Spawning Play button.", error);
+    if (container.querySelector('.safari-play-btn')) return;
+
+    const playBtn = document.createElement('button');
+    playBtn.innerHTML = '<i class="fa-solid fa-play"></i>';
+    playBtn.className = "safari-play-btn absolute inset-0 m-auto w-12 h-12 bg-blue-600 text-white rounded-full z-50 shadow-lg flex items-center justify-center";
+
+    playBtn.onclick = (e) => {
+        e.stopPropagation();
+        video.play().then(() => {
+            playBtn.remove();
+        });
+    };
+    container.appendChild(playBtn);
+  });
 }
 
 function updateMainFeedLabel(label) {
@@ -729,7 +765,10 @@ function handleMediaStateMsg(msg) {
       if (isVideoOn) {
         consultantVideo.style.opacity = '1';
         placeholder.style.display = 'none';
-        consultantVideo.play().catch(e => console.error(e));
+        consultantVideo.play().catch(error => {
+          console.warn("[webrtc] Safari Autoplay (MediaState) Blocked.");
+          // Play button logic is usually handled in handleConsultantRemoteTrack
+        });
       } else {
         consultantVideo.style.opacity = '0';
         placeholder.style.display = 'flex';

@@ -68,10 +68,16 @@ function injectVideo(container, stream, label = 'Live Feed') {
   if (!stream) return;
 
   const video = document.createElement('video');
-  video.srcObject  = stream;
+  
+  // Phase 16: iOS Safari Attributes (Attributes FIRST, then srcObject)
+  video.setAttribute('autoplay', '');
+  video.setAttribute('playsinline', '');
+  video.setAttribute('muted', '');
+  video.playsInline = true;
   video.autoplay   = true;
-  video.muted      = true;   // required for autoplay policy
-  video.playsInline = true;  // required on iOS to avoid fullscreen
+  video.muted      = true;   // local preview MUST be muted for autoplay
+  
+  video.srcObject  = stream;
   video.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
 
   // Hide the "waiting" overlay once the video is playing
@@ -81,8 +87,9 @@ function injectVideo(container, stream, label = 'Live Feed') {
   }, { once: true });
 
   container.appendChild(video);
-  video.play().catch(() => {
-    // Autoplay blocked — show a tap-to-play message
+  video.play().catch(error => {
+    // Autoplay blocked — show a tap-to-play message or just log
+    console.warn("[media.js] Local autoplay blocked:", error);
     showError(`Tap the ${label} to start playback.`);
   });
 }
