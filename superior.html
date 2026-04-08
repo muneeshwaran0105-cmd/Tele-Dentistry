@@ -156,6 +156,8 @@
 
             <!-- Video Container -->
             <div id="mainVideoContainer" class="absolute inset-0 flex items-center justify-center w-full h-full">
+                <!-- Requirement: Placeholder video with specific attributes -->
+                <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-contain z-10 hidden"></video>
                 <div id="mainFeedOverlay" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 pointer-events-none bg-slate-900">
                     <i class="fa-solid fa-eye text-5xl sm:text-6xl mb-4 opacity-40"></i>
                     <p class="text-base sm:text-lg font-medium opacity-80 tracking-wide text-slate-300">Awaiting primary stream connection</p>
@@ -178,6 +180,7 @@
                  class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
                 
                 <div id="pipVideo0" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
                     <i class="fa-solid fa-desktop text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
                 
@@ -197,6 +200,7 @@
                  class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
                 
                 <div id="pipVideo1" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
                     <i class="fa-solid fa-mobile-screen text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
                 
@@ -214,6 +218,7 @@
                  class="relative bg-slate-800 rounded-xl shadow-md border-[3px] border-transparent hover:border-medical-blue overflow-hidden shrink-0 w-48 xl:w-full aspect-video transition-all cursor-pointer group isolate">
                 
                 <div id="pipVideo2" class="absolute inset-0 flex items-center justify-center bg-slate-900 -z-10">
+                    <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
                     <i class="fa-brands fa-usb text-slate-600 text-3xl group-hover:scale-110 transition-transform"></i>
                 </div>
                 

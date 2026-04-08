@@ -457,11 +457,17 @@ async function handleOffer(msg) {
  */
 async function handleAnswer(msg) {
   if (!peerConn) return;
-  try {
-    await peerConn.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-    log('Remote description (answer) set.');
-  } catch (err) {
-    warn('handleAnswer failed:', err);
+  
+  // Requirement: Wrap setRemoteDescription in a signalingState check
+  if (peerConn.signalingState === 'have-local-offer' || peerConn.signalingState === 'have-remote-offer') {
+    try {
+      await peerConn.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      log('Remote description (answer) set.');
+    } catch (err) {
+      warn('handleAnswer failed:', err);
+    }
+  } else {
+    warn(`Ignored stray answer to prevent InvalidStateError. Current state: ${peerConn.signalingState}`);
   }
 }
 
@@ -663,7 +669,9 @@ function buildPipSlot(stream, index) {
       <span class="font-medium text-gray-200">${label}</span>
       <span class="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)]"></span>
     </div>
-    <div data-pip-video class="flex-grow relative bg-slate-900 overflow-hidden"></div>
+    <div data-pip-video class="flex-grow relative bg-slate-900 overflow-hidden">
+      <video autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover z-10 hidden"></video>
+    </div>
   `;
 
   // Click-to-focus: swap this PiP stream with the central viewer
@@ -682,24 +690,36 @@ function buildPipSlot(stream, index) {
  * @param {'primary'|'pip'}      type
  */
 function injectVideo(container, stream, type) {
-  // Remove any previously injected video in this slot
-  const old = container.querySelector('video');
-  if (old) old.remove();
+  // Try to find an existing placeholder video element first
+  let video = container.querySelector('video');
+  
+  if (!video) {
+    video = document.createElement('video');
+    container.appendChild(video);
+  }
 
-  const video = document.createElement('video');
-  video.srcObject = stream;
+  // Force required attributes for autoplay/visibility
   video.autoplay = true;
   video.muted = true;
   video.playsInline = true;
   video.setAttribute('autoplay', '');
   video.setAttribute('playsinline', '');
   video.setAttribute('muted', '');
+  
   // Absolute fill — covers the placeholder icon beneath it
   video.className = 'absolute inset-0 w-full h-full z-10 ' +
     (type === 'primary' ? 'object-contain' : 'object-cover');
+    
+  // Assign stream and unhide
+  video.srcObject = stream;
+  video.classList.remove('hidden');
 
-  container.appendChild(video);
-  video.play().catch(e => console.error('Autoplay blocked:', e));
+  // Requirement: Explicitly call play() after assigning srcObject
+  video.play().catch(e => {
+    console.error("Autoplay blocked or playback failed:", e);
+    // Fallback: wait for user interaction or attempt again
+  });
+
   log('Video injected into', container.id || container.className, '— stream:', stream.id);
 }
 
@@ -750,11 +770,11 @@ function focusStream(streamToFocus) {
 
   // ── Swap srcObject references ──────────────────────────────────────
   mainVideo.srcObject = streamToFocus;
-  mainVideo.play().catch(e => console.error('Autoplay blocked:', e));
+  mainVideo.play().catch(e => console.error('Autoplay blocked (main):', e));
 
   if (pipVideoEl && currentMainStream) {
     pipVideoEl.srcObject = currentMainStream;
-    pipVideoEl.play().catch(e => console.error('Autoplay blocked:', e));
+    pipVideoEl.play().catch(e => console.error('Autoplay blocked (pip):', e));
   }
 
   // Update the remoteStreams map to reflect the new locations
