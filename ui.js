@@ -95,7 +95,8 @@ function setupMediaToggles() {
                 if (icon) {
                     icon.className = 'fa-solid fa-microphone-slash text-red-500 text-xl sm:text-2xl transition-all duration-300';
                 }
-                if (bgDiv && bgDiv.classList) bgDiv.classList.add('bg-red-50');
+                // Phase 25: Remove any background fill
+                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
             } else {
                 if (icon) {
                     icon.className = 'fa-solid fa-microphone text-gray-600 group-hover:text-medical-blue text-xl sm:text-2xl transition-all duration-300';
@@ -125,7 +126,8 @@ function setupMediaToggles() {
                 if (icon) {
                     icon.className = 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all duration-300';
                 }
-                if (bgDiv && bgDiv.classList) bgDiv.classList.add('bg-red-50');
+                // Phase 25: Remove any background fill
+                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
             } else {
                 if (icon) {
                     icon.className = 'fa-solid fa-video text-gray-600 group-hover:text-medical-blue text-xl sm:text-2xl transition-all duration-300';

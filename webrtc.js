@@ -195,6 +195,12 @@ function handleRoomCreated(msg) {
   if (createBtn) createBtn.disabled = true;
   if (joinBtn) joinBtn.disabled = true;
 
+  // Phase 25: Update Room Info Display
+  const displayId = document.getElementById('displayRoomId');
+  const displayPin = document.getElementById('displayRoomPin');
+  if (displayId) displayId.textContent = msg.room_id;
+  if (displayPin) displayPin.textContent = msg.pin;
+
   // Phase 22: Trigger smooth UI transition
   if (typeof window.closeEntryModal === 'function') {
     window.closeEntryModal();
@@ -222,6 +228,12 @@ function handleRoomJoined(msg) {
   showToast(`Joined room "${msg.room_id}"!`, 'success');
   const joinBtn = document.getElementById('joinRoomBtn');
   if (joinBtn) joinBtn.disabled = true;
+
+  // Phase 25: Update Room Info Display
+  const displayId = document.getElementById('displayRoomId');
+  const displayPin = document.getElementById('displayRoomPin');
+  if (displayId) displayId.textContent = msg.room_id || currentRoomId;
+  if (displayPin) displayPin.textContent = msg.pin || '****';
 
   // Phase 22: Trigger smooth UI transition
   if (typeof window.closeEntryModal === 'function') {
@@ -903,6 +915,8 @@ async function stopConsultantMedia() {
   const icon = camToggle?.querySelector('i');
   if (icon) {
     icon.className = 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6';
+    // Remove any background fill
+    if (camToggle.querySelector('.rounded-full')) camToggle.querySelector('.rounded-full').classList.remove('bg-red-50');
   }
 
   // Send WS media_state false payload
@@ -924,10 +938,14 @@ function toggleConsultantMic() {
 
   const btn = document.getElementById('consultantMicToggleBtn');
   const icon = btn?.querySelector('i');
+  const bgDiv = btn?.querySelector('.rounded-full');
   if (icon) {
     icon.className = consultantMicMuted
       ? 'fa-solid fa-microphone-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
       : 'fa-solid fa-microphone text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+    
+    // Phase 25: Remove background fill for better glass transparency
+    if (bgDiv) bgDiv.classList.remove('bg-red-50');
   }
   log('Consultant mic:', consultantMicMuted ? 'MUTED' : 'LIVE');
 }
@@ -945,10 +963,14 @@ function toggleConsultantCam() {
 
   const btn = document.getElementById('consultantCamToggleBtn');
   const icon = btn?.querySelector('i');
+  const bgDiv = btn?.querySelector('.rounded-full');
   if (icon) {
     icon.className = consultantCamPaused
       ? 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
       : 'fa-solid fa-camera text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+
+    // Phase 25: Remove background fill for better glass transparency
+    if (bgDiv) bgDiv.classList.remove('bg-red-50');
   }
   
   sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });

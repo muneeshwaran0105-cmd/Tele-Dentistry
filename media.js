@@ -80,9 +80,9 @@ function injectVideo(container, stream, label = 'Live Feed') {
   video.srcObject  = stream;
   video.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
 
-  // Hide the "waiting" overlay once the video is playing
+  // Phase 25: Hide the "waiting" overlay once the video is playing
   video.addEventListener('playing', () => {
-    const overlay = container.querySelector('[data-overlay]');
+    const overlay = document.getElementById('cameraWaitingOverlay') || container.querySelector('[data-overlay]');
     if (overlay) overlay.style.display = 'none';
   }, { once: true });
 
