@@ -162,20 +162,20 @@
     </header>
 
     <!-- ── HARDWARE CONTROL BAR (Standard Document Flow) ───────────────── -->
-    <div class="flex w-full max-w-4xl mx-auto justify-center items-center gap-4 mt-4 hardware-bar z-40">
+    <div class="flex flex-wrap w-full max-w-5xl mx-auto justify-center items-center gap-4 mt-4 px-4 hardware-bar z-40">
         <div class="glass glass-reflect rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-center justify-between border border-white/10">
             <div class="flex items-center gap-2 px-2 text-white/40">
                 <i class="fa-solid fa-sliders text-sm"></i>
                 <span class="text-[10px] font-bold uppercase tracking-widest">Hardware</span>
             </div>
             <div class="flex flex-1 gap-2 w-full">
-                <select id="cameraSelect" class="ios-select flex-1">
+                <select id="cameraSelect" class="ios-select flex-1 min-w-[140px] max-w-[200px]">
                     <option value="">WebCam</option>
                 </select>
-                <select id="micSelect" class="ios-select flex-1">
+                <select id="micSelect" class="ios-select flex-1 min-w-[140px] max-w-[200px]">
                     <option value="">Microphone</option>
                 </select>
-                <select id="intaoralSelect" class="ios-select flex-1">
+                <select id="intaoralSelect" class="ios-select flex-1 min-w-[140px] max-w-[200px]">
                     <option value="">Intraoral Device</option>
                 </select>
             </div>
