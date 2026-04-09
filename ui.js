@@ -112,18 +112,21 @@ function setupMediaToggles() {
                     }
                     updateToggleButtonUI(micBtn, !isMicMuted);
 
-                    // Send Signal
-                    if (typeof window.sendMediaState === 'function') {
-                        // Using the strict pattern from requirement 4
-                        if (socket && socket.readyState === WebSocket.OPEN) {
-                            socket.send(json.dumps({
-                                action: "relay",
-                                room_id: currentRoomId,
-                                type: "media_state",
-                                peerId: localPeerId,
-                                audio: track.enabled
-                            }));
-                        }
+                    // Send Signal using unified sendSignal if available
+                    if (typeof window.sendSignal === 'function') {
+                        window.sendSignal({
+                            action: "relay",
+                            room_id: currentRoomId,
+                            type: "media_state",
+                            audio: track.enabled
+                        });
+                    } else if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            action: "relay",
+                            room_id: currentRoomId,
+                            type: "media_state",
+                            audio: track.enabled
+                        }));
                     }
                 }
             }
@@ -148,12 +151,18 @@ function setupMediaToggles() {
                     updateToggleButtonUI(camBtn, !isCameraPaused);
 
                     // Send Signal
-                    if (typeof window.sendMediaState === 'function') {
-                        socket.send(json.dumps({
+                    if (typeof window.sendSignal === 'function') {
+                        window.sendSignal({
                             action: "relay",
                             room_id: currentRoomId,
                             type: "media_state",
-                            peerId: localPeerId,
+                            video: track.enabled
+                        });
+                    } else if (socket && socket.readyState === WebSocket.OPEN) {
+                        socket.send(JSON.stringify({
+                            action: "relay",
+                            room_id: currentRoomId,
+                            type: "media_state",
                             video: track.enabled
                         }));
                     }

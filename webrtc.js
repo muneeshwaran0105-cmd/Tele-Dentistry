@@ -245,6 +245,10 @@ function handleRoomJoined(msg) {
 // SECTION C — Multi-Peer Connection Management (Mesh Core)
 // ===========================================================================
 
+function getLocalStream() {
+    return window.localConsultantStream || window.localStream;
+}
+
 /**
  * Factory: creates or retrieves an RTCPeerConnection for a remote peer.
  * Both roles add their local tracks and bind ontrack handlers.
@@ -257,6 +261,15 @@ function getOrCreatePeerConnection(remotePeerId) {
   const pc = new RTCPeerConnection(RTC_CONFIG);
   peerConnections[remotePeerId] = pc;
   log(`RTCPeerConnection created for ${remotePeerId}`);
+
+  // Auto-add local tracks if available
+  const currentStream = getLocalStream();
+  if (currentStream) {
+    currentStream.getTracks().forEach(track => {
+      pc.addTrack(track, currentStream);
+      log(`Added local track (${track.kind}) to new connection with ${remotePeerId}`);
+    });
+  }
 
   // ── ICE relay ──────────────────────────────────────────────────────
   pc.onicecandidate = ({ candidate }) => {
@@ -398,17 +411,18 @@ async function handleOffer(msg) {
   const senderId = msg.sender_id;
   const pc = getOrCreatePeerConnection(senderId);
 
-  // 2. INJECT TRACKS IMMEDIATELY (Critical Fix)
-  if (window.localStream) {
-      window.localStream.getTracks().forEach(track => {
+  // 2. INJECT TRACKS IMMEDIATELY (Critical Fix Phase 27)
+  const currentStream = getLocalStream();
+  if (currentStream) {
+      currentStream.getTracks().forEach(track => {
           const existingTrackIds = new Set(pc.getSenders().map(s => s.track?.id).filter(Boolean));
           if (!existingTrackIds.has(track.id)) {
-              pc.addTrack(track, window.localStream);
+              pc.addTrack(track, currentStream);
               log(`[webrtc] Added local track (${track.kind}) to answer for ${senderId}`);
           }
       });
   } else {
-      warn(`[webrtc] Warning: No localStream available when answering offer from ${senderId}`);
+      warn(`[webrtc] Warning: No local streams available when answering offer from ${senderId}`);
   }
 
   try {
@@ -477,10 +491,9 @@ function handleConsultantRemoteTrack(stream) {
     // CRITICAL: do NOT mute — Provider must hear Consultant
     videoEl.muted = false;
 
-    // Phase 19 fix: Delay playback slightly to allow tracks to settle
-    setTimeout(() => {
-      videoEl.play().catch(e => console.warn('Autoplay blocked (consultant PiP):', e));
-    }, 100);
+    // Phase 26: Hide waiting overlay if it exists
+    const overlay = document.getElementById('cameraWaitingOverlay');
+    if (overlay) overlay.style.display = 'none';
   }
   log('Consultant remote stream attached to PiP.');
 }
@@ -862,30 +875,37 @@ async function startConsultantMedia() {
     const overlay = document.getElementById('cameraWaitingOverlay');
     if (overlay) overlay.style.display = 'none';
 
-    // Phase 20: Add tracks to ALL existing peer connections with Forced Safari Renegotiation
-    for (const peerId in peerConnections) {
+    // Phase 27: Explicitly Renegotiate with all peers
+    const activePeers = Object.keys(peerConnections);
+    log(`Renegotiating with ${activePeers.length} active peers...`);
+
+    for (const peerId of activePeers) {
         const pc = peerConnections[peerId];
-        let needsRenegotiation = false;
+        let needsOffer = false;
 
         window.localConsultantStream.getTracks().forEach(track => {
-            const transceiver = pc.getTransceivers().find(t => t.receiver.track.kind === track.kind);
+            // Find transceiver matching this track kind
+            const transceiver = pc.getTransceivers().find(t => 
+                (t.sender && t.sender.track && t.sender.track.kind === track.kind) || 
+                (t.receiver && t.receiver.track && t.receiver.track.kind === track.kind)
+            );
+
             if (transceiver) {
-                transceiver.sender.replaceTrack(track).catch(e => console.error("replaceTrack error:", e));
+                log(`Found existing transceiver for ${track.kind} to ${peerId}. Replacing track...`);
+                transceiver.sender.replaceTrack(track).catch(e => warn("replaceTrack failed:", e));
                 if (transceiver.direction !== 'sendrecv') {
                     transceiver.direction = 'sendrecv';
-                    needsRenegotiation = true; // Safari requires renegotiation when direction changes
-                    log(`Safari: Direction changed to sendrecv for ${track.kind} on ${peerId}`);
+                    needsOffer = true;
                 }
             } else {
+                log(`No transceiver for ${track.kind} on ${peerId}. Calling addTrack...`);
                 pc.addTrack(track, window.localConsultantStream);
-                needsRenegotiation = true;
-                log(`Safari: Added new ${track.kind} track to ${peerId}`);
+                needsOffer = true;
             }
         });
 
-        // CRITICAL: Force Safari to flush the RTP pipeline
-        if (needsRenegotiation) {
-            log(`Safari: Triggering formal renegotiation offer for ${peerId}`);
+        if (needsOffer) {
+            log(`Triggering formal renegotiation offer for ${peerId}`);
             pc.createOffer()
               .then(offer => pc.setLocalDescription(offer))
               .then(() => {
@@ -896,8 +916,12 @@ async function startConsultantMedia() {
                       type: "offer",
                       sdp: pc.localDescription,
                   });
+                  log(`Renegotiation offer sent to ${peerId}`);
               })
-              .catch(e => console.error("Safari renegotiation failed:", e));
+              .catch(e => warn(`Renegotiation failed for ${peerId}:`, e));
+        } else {
+            // Even if direction didn't change, we should probably send an update if tracks were replaced
+            log(`Fast-track update (no offer needed) for ${peerId}`);
         }
     }
 
