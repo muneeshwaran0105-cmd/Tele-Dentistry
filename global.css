@@ -269,8 +269,6 @@ html:not(.dark) .ambient-orb { opacity: 0.06; }
     box-shadow: inset 0 0 0 12px rgba(0,0,0,0.4);
     pointer-events: none;
     z-index: 20;
-    backdrop-filter: blur(12px);
-    opacity: 0.6;
 }
 .edge-ring {
     position: absolute;

@@ -314,11 +314,11 @@ function updateTorchUI(on) {
 
   if (on) {
     flashlightBgEl.classList.replace('bg-gray-100', 'bg-yellow-100');
-    flashlightIconEl.textContent = 'flashlight_on';
+    // textContent removed for Icon-Only requirement
     flashlightIconEl.classList.add('text-yellow-600');
   } else {
     flashlightBgEl.classList.replace('bg-yellow-100', 'bg-gray-100');
-    flashlightIconEl.textContent = 'flashlight_off';
+    // textContent removed for Icon-Only requirement
     flashlightIconEl.classList.remove('text-yellow-600');
   }
 }

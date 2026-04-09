@@ -57,7 +57,7 @@
         }
     </style>
 </head>
-<body class="text-white flex flex-col h-screen overflow-hidden relative">
+<body class="text-white flex flex-col min-h-screen relative">
 
     <!-- ── Ambient Background Orbs ─────────────────────────────────── -->
     <div class="ambient-orb" style="width:500px;height:500px;background:var(--accent);top:-100px;left:-100px;"></div>
@@ -127,8 +127,8 @@
         </div>
     </div>
 
-    <!-- ── TOP NAV — Floating Pill Glass Navbar ────────────────────── -->
-    <header class="fixed top-4 left-4 right-4 z-50" style="animation:float-in 0.6s var(--spring) both 0.1s;">
+    <!-- ── TOP NAV — Floating Pill Navbar (Flow) ────────────────────── -->
+    <header class="w-full relative px-4 py-4 z-50">
         <nav class="glass glass-reflect rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between">
             <!-- Left: Brand -->
             <div class="flex items-center gap-3">
@@ -161,9 +161,8 @@
         </nav>
     </header>
 
-    <!-- ── HARDWARE CONTROL BAR ────────────────────────────────────── -->
-    <!-- ── HARDWARE CONTROL BAR ────────────────────────────────────── -->
-    <div class="flex w-full max-w-4xl mx-auto justify-center items-center gap-4 mt-4 hardware-bar">
+    <!-- ── HARDWARE CONTROL BAR (Standard Document Flow) ───────────────── -->
+    <div class="flex w-full max-w-4xl mx-auto justify-center items-center gap-4 mt-4 hardware-bar z-40">
         <div class="glass glass-reflect rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-center justify-between border border-white/10">
             <div class="flex items-center gap-2 px-2 text-white/40">
                 <i class="fa-solid fa-sliders text-sm"></i>
@@ -184,15 +183,12 @@
     </div>
 
     <!-- ── MAIN VIDEO LAYOUT ───────────────────────────────────────── -->
-    <main class="flex-grow flex items-center justify-center w-full h-screen relative z-10 px-4 pt-44 pb-32">
+    <main class="flex-grow flex items-center justify-center w-full relative z-10 px-4 py-8">
         
         <!-- Primary Local Video (Massive) -->
-        <section class="video-surface w-full h-full max-w-6xl relative video-main-container">
-            <div class="edge-blur"></div>
-            <div class="edge-ring"></div>
-            
+        <section class="video-surface w-full max-w-6xl aspect-video relative video-main-container">
             <div id="pcFeedPlaceholder" class="w-full h-full bg-black/40 flex items-center justify-center">
-                <div id="cameraWaitingOverlay" data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-white/20 z-10 bg-slate-900/40 backdrop-blur-sm">
+                <div id="cameraWaitingOverlay" data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-white/20 z-10 bg-slate-900/60 transition-opacity duration-500">
                     <i class="fa-solid fa-video-slash text-6xl mb-4"></i>
                     <p class="text-sm font-bold uppercase tracking-[0.2em]">Awaiting Camera Input</p>
                 </div>
