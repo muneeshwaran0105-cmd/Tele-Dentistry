@@ -585,6 +585,10 @@ function handleRemoteTrack(track, stream, peerId) {
   const { tile, video } = getOrCreateVideoTile(peerId);
   if (!video || !tile) return;
 
+  // Phase 26: Hide the waiting overlay on first remote track
+  const overlay = document.getElementById('cameraWaitingOverlay');
+  if (overlay) overlay.style.display = 'none';
+
   // Phase 19 fix: Guard srcObject assignment to prevent "Double-Fire" AbortError
   if (video.srcObject !== stream) {
     video.srcObject = stream;
@@ -854,6 +858,10 @@ async function startConsultantMedia() {
     }
     if (previewContainer) previewContainer.style.display = '';
 
+    // Phase 26: Hide overlays on successful local media
+    const overlay = document.getElementById('cameraWaitingOverlay');
+    if (overlay) overlay.style.display = 'none';
+
     // Phase 20: Add tracks to ALL existing peer connections with Forced Safari Renegotiation
     for (const peerId in peerConnections) {
         const pc = peerConnections[peerId];
@@ -910,19 +918,27 @@ async function stopConsultantMedia() {
   consultantCamPaused = true;
   localConsultantStream.getVideoTracks().forEach(t => { t.enabled = false; });
   
-  // Update internal toggle button to match state
-  const camToggle = document.getElementById('consultantCamToggleBtn');
-  const icon = camToggle?.querySelector('i');
-  if (icon) {
-    icon.className = 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6';
-    // Remove any background fill
-    if (camToggle.querySelector('.rounded-full')) camToggle.querySelector('.rounded-full').classList.remove('bg-red-50');
-  }
+  const btn = document.getElementById('consultantCamToggleBtn');
+  updateToggleButtonUI(btn, false);
 
   // Send WS media_state false payload
   sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: false });
 
   log('Consultant media soft-paused.');
+}
+
+function updateToggleButtonUI(btn, enabled) {
+    if (!btn) return;
+    const icon = btn.querySelector('i') || btn.querySelector('svg');
+    const bgDiv = btn.querySelector('.rounded-full') || btn.querySelector('div') || btn;
+
+    if (enabled) {
+        btn.classList.remove('text-red-500');
+        if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-500/20');
+    } else {
+        btn.classList.add('text-red-500');
+        if (bgDiv && bgDiv.classList) bgDiv.classList.add('bg-red-500/20');
+    }
 }
 
 /**
@@ -933,21 +949,29 @@ function toggleConsultantMic() {
     showToast('Start your camera first.', 'error');
     return;
   }
-  consultantMicMuted = !consultantMicMuted;
-  localConsultantStream.getAudioTracks().forEach(t => { t.enabled = !consultantMicMuted; });
+  const track = localConsultantStream.getAudioTracks()[0];
+  if (track) {
+    track.enabled = !track.enabled;
+    consultantMicMuted = !track.enabled;
 
-  const btn = document.getElementById('consultantMicToggleBtn');
-  const icon = btn?.querySelector('i');
-  const bgDiv = btn?.querySelector('.rounded-full');
-  if (icon) {
-    icon.className = consultantMicMuted
-      ? 'fa-solid fa-microphone-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
-      : 'fa-solid fa-microphone text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
-    
-    // Phase 25: Remove background fill for better glass transparency
-    if (bgDiv) bgDiv.classList.remove('bg-red-50');
+    const btn = document.getElementById('consultantMicToggleBtn');
+    const icon = btn?.querySelector('i');
+    if (icon) {
+      icon.className = consultantMicMuted
+        ? 'fa-solid fa-microphone-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
+        : 'fa-solid fa-microphone text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+    }
+    updateToggleButtonUI(btn, !consultantMicMuted);
+
+    // Phase 26: Signal state change
+    sendSignal({ 
+      action: 'relay', 
+      room_id: currentRoomId, 
+      type: 'media_state', 
+      audio: track.enabled 
+    });
+    log('Consultant mic:', consultantMicMuted ? 'MUTED' : 'LIVE');
   }
-  log('Consultant mic:', consultantMicMuted ? 'MUTED' : 'LIVE');
 }
 
 /**
@@ -958,23 +982,29 @@ function toggleConsultantCam() {
     showToast('Start your camera first.', 'error');
     return;
   }
-  consultantCamPaused = !consultantCamPaused;
-  localConsultantStream.getVideoTracks().forEach(t => { t.enabled = !consultantCamPaused; });
+  const track = localConsultantStream.getVideoTracks()[0];
+  if (track) {
+    track.enabled = !track.enabled;
+    consultantCamPaused = !track.enabled;
 
-  const btn = document.getElementById('consultantCamToggleBtn');
-  const icon = btn?.querySelector('i');
-  const bgDiv = btn?.querySelector('.rounded-full');
-  if (icon) {
-    icon.className = consultantCamPaused
-      ? 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
-      : 'fa-solid fa-camera text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+    const btn = document.getElementById('consultantCamToggleBtn');
+    const icon = btn?.querySelector('i');
+    if (icon) {
+      icon.className = consultantCamPaused
+        ? 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all block w-6 h-6 text-center leading-6'
+        : 'fa-solid fa-camera text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6';
+    }
+    updateToggleButtonUI(btn, !consultantCamPaused);
 
-    // Phase 25: Remove background fill for better glass transparency
-    if (bgDiv) bgDiv.classList.remove('bg-red-50');
+    // Phase 26: Signal state change
+    sendSignal({ 
+      action: 'relay', 
+      room_id: currentRoomId, 
+      type: 'media_state', 
+      video: track.enabled 
+    });
+    log('Consultant cam:', consultantCamPaused ? 'OFF' : 'ON');
   }
-  
-  sendSignal({ action: 'relay', room_id: currentRoomId, type: 'media_state', video: !consultantCamPaused });
-  log('Consultant cam:', consultantCamPaused ? 'OFF' : 'ON');
 }
 
 // ===========================================================================

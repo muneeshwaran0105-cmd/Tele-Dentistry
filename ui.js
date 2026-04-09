@@ -74,72 +74,91 @@ navigator.mediaDevices.addEventListener('devicechange', populateDeviceDropdowns)
 let isMicMuted = false;
 let isCameraPaused = false;
 
+function updateToggleButtonUI(btn, enabled) {
+    if (!btn) return;
+    const icon = btn.querySelector('i') || btn.querySelector('svg');
+    const bgDiv = btn.querySelector('.rounded-full') || btn.querySelector('div') || btn;
+
+    if (enabled) {
+        btn.classList.remove('text-red-500');
+        if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-500/20');
+        if (icon && icon.classList.contains('fa-solid')) {
+            // Restore default icon state (handled by specific toggle listeners usually)
+        }
+    } else {
+        btn.classList.add('text-red-500');
+        if (bgDiv && bgDiv.classList) bgDiv.classList.add('bg-red-500/20');
+    }
+}
+
 function setupMediaToggles() {
     const micBtn = document.getElementById('micToggleBtn');
     const camBtn = document.getElementById('cameraToggleBtn');
 
     if (micBtn) {
         micBtn.addEventListener('click', () => {
-            isMicMuted = !isMicMuted;
-            
-            // Toggle Audio Tracks
             if (window.pcStream) {
-                window.pcStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
-            }
-            
-            // Update UI
-            const icon = micBtn.querySelector('.material-icons') || micBtn.querySelector('i');
-            const bgDiv = micBtn.querySelector('.rounded-full') || micBtn.firstElementChild;
-            
-            if (isMicMuted) {
-                if (icon) {
-                    icon.className = 'fa-solid fa-microphone-slash text-red-500 text-xl sm:text-2xl transition-all duration-300';
+                const track = window.pcStream.getAudioTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    isMicMuted = !track.enabled;
+
+                    // Update UI
+                    const icon = micBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = isMicMuted 
+                            ? 'fa-solid fa-microphone-slash text-red-500 text-xl transition-all'
+                            : 'fa-solid fa-microphone text-gray-600 group-hover:text-blue-500 text-xl transition-all';
+                    }
+                    updateToggleButtonUI(micBtn, !isMicMuted);
+
+                    // Send Signal
+                    if (typeof window.sendMediaState === 'function') {
+                        // Using the strict pattern from requirement 4
+                        if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(json.dumps({
+                                action: "relay",
+                                room_id: currentRoomId,
+                                type: "media_state",
+                                peerId: localPeerId,
+                                audio: track.enabled
+                            }));
+                        }
+                    }
                 }
-                // Phase 25: Remove any background fill
-                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
-            } else {
-                if (icon) {
-                    icon.className = 'fa-solid fa-microphone text-gray-600 group-hover:text-medical-blue text-xl sm:text-2xl transition-all duration-300';
-                }
-                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
             }
         });
     }
 
     if (camBtn) {
         camBtn.addEventListener('click', () => {
-            isCameraPaused = !isCameraPaused;
-            
-            // Soft-Toggle: Set enabled flag on local tracks across all active streams
             if (window.pcStream) {
-                window.pcStream.getVideoTracks().forEach(t => t.enabled = !isCameraPaused);
-            }
-            if (window.usbStream) {
-                window.usbStream.getVideoTracks().forEach(t => t.enabled = !isCameraPaused);
-            }
-            
-            // Update UI Button appearance
-            const icon = camBtn.querySelector('i') || camBtn.querySelector('.material-icons');
-            const bgDiv = camBtn.querySelector('.rounded-full') || camBtn.querySelector('div');
-            
-            if (isCameraPaused) {
-                if (icon) {
-                    icon.className = 'fa-solid fa-video-slash text-red-500 text-xl sm:text-2xl transition-all duration-300';
-                }
-                // Phase 25: Remove any background fill
-                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
-            } else {
-                if (icon) {
-                    icon.className = 'fa-solid fa-video text-gray-600 group-hover:text-medical-blue text-xl sm:text-2xl transition-all duration-300';
-                }
-                if (bgDiv && bgDiv.classList) bgDiv.classList.remove('bg-red-50');
-            }
+                const track = window.pcStream.getVideoTracks()[0];
+                if (track) {
+                    track.enabled = !track.enabled;
+                    isCameraPaused = !track.enabled;
 
-            // Broadcast state to peers via signaling (webrtc.js)
-            if (typeof window.sendMediaState === 'function') {
-                window.sendMediaState(!isCameraPaused);
+                    // Update UI
+                    const icon = camBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = isCameraPaused
+                            ? 'fa-solid fa-video-slash text-red-500 text-xl transition-all'
+                            : 'fa-solid fa-video text-gray-600 group-hover:text-blue-500 text-xl transition-all';
+                    }
+                    updateToggleButtonUI(camBtn, !isCameraPaused);
+
+                    // Send Signal
+                    if (typeof window.sendMediaState === 'function') {
+                        socket.send(json.dumps({
+                            action: "relay",
+                            room_id: currentRoomId,
+                            type: "media_state",
+                            peerId: localPeerId,
+                            video: track.enabled
+                        }));
+                    }
+                }
             }
-            console.log('[ui.js] Camera toggled:', isCameraPaused ? 'PAUSED' : 'RESUMED');
         });
     }
 }
