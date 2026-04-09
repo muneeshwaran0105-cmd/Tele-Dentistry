@@ -1,257 +1,271 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Teledentistry Portal - Provider</title>
+    <meta name="description" content="Teledentistry Provider Dashboard — high-fidelity clinical media broadcast with iOS-style Glassmorphism UI.">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome (Modern Iconography) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
                     },
                     colors: {
                         medical: {
-                            blue: '#3b82f6', // modern bright blue
-                            dark: '#0f172a', // slate-900
-                            light: '#f8fafc', // slate-50
+                            blue: '#3b82f6',
+                            dark: '#0f172a',
+                            light: '#f8fafc',
                             white: '#FFFFFF',
-                            green: '#10b981', // emerald-500
-                            red: '#ef4444', // red-500
+                            green: '#10b981',
+                            red: '#ef4444',
                             gray: '#cbd5e1'
                         }
-                    },
-                    boxShadow: {
-                        'up': '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)'
                     }
                 }
             }
         }
     </script>
+
+    <link rel="stylesheet" href="global.css">
     <style>
-        body { background-color: #f8fafc; overflow-x: hidden; }
-        /* Smooth transitions */
-        button, a, input, select { transition: all 0.3s ease; }
-        /* Ensure responsive grid doesn't overflow */
-        #pcFeedPlaceholder, #intaoralPlaceholder { max-width: 100vw; }
+        /* ── Page-specific layout ───────────────────────────────────── */
+        #pcFeedPlaceholder video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover !important; /* Force cover for massive feeling */
+        }
+        
+        .hardware-bar {
+            animation: float-in 0.6s var(--spring) both 0.2s;
+        }
+
+        .video-main-container {
+            animation: float-in 0.8s var(--spring) both 0.3s;
+        }
     </style>
 </head>
-<body class="text-slate-800 flex flex-col min-h-screen font-sans">
+<body class="text-white flex flex-col h-screen overflow-hidden relative">
 
-    <!-- ── Header (Logo & Brand) ─────────────── -->
-    <header class="bg-white/90 backdrop-blur-md shadow-sm py-3 px-4 sm:px-6 fixed w-full top-0 z-50 border-b border-slate-200">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="bg-blue-50 p-2 rounded-xl text-medical-blue">
-                    <i class="fa-solid fa-tooth text-xl sm:text-2xl"></i>
-                </div>
-                <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-800">
-                    Teledentistry
-                    <span class="text-slate-400 font-normal hidden sm:inline ml-2 border-l border-slate-300 pl-3">Provider</span>
-                </h1>
-            </div>
-            <!-- Status badge -->
-            <div id="connectionStatus" class="hidden items-center space-x-2 bg-emerald-50 border border-emerald-200 px-4 py-1.5 rounded-full shadow-sm">
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse relative">
-                    <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping"></span>
-                </span>
-                <span class="text-xs sm:text-sm font-semibold text-emerald-700 tracking-wide" id="statusText">Connected</span>
-            </div>
-            <!-- Phase 21: Network Monitor -->
-            <div id="network-monitor" class="flex items-center space-x-2 bg-slate-50 border border-slate-200 px-3 py-1 rounded-full shadow-sm ml-2">
-                <div id="net-dot" class="w-2.5 h-2.5 rounded-full bg-gray-300 transition-colors duration-500"></div>
-                <span id="net-text" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Waiting...</span>
-            </div>
-        </div>
-    </header>
+    <!-- ── Ambient Background Orbs ─────────────────────────────────── -->
+    <div class="ambient-orb" style="width:500px;height:500px;background:var(--accent);top:-100px;left:-100px;"></div>
+    <div class="ambient-orb" style="width:400px;height:400px;background:#8b5cf6;bottom:-80px;right:-80px;"></div>
+    
+    <!-- ══════════════════════════════════════════════════════════════
+         ENTRY MODAL
+         ══════════════════════════════════════════════════════════════ -->
+    <div id="entryModalOverlay" class="fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-3xl bg-black/30 transition-all duration-500">
+        <div class="glass glass-reflect rounded-[2.5rem] p-10 w-[94vw] max-w-md modal-enter" id="entryModalCard">
 
-    <!-- ── Connection Panel ──────────────────── -->
-    <div class="fixed top-[60px] sm:top-[72px] w-full z-40 bg-white/80 backdrop-blur border-b border-slate-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3">
-            <div class="flex flex-col md:flex-row gap-3 md:items-center">
-                <div class="flex gap-3 flex-1 relative">
-                    <div class="relative flex-1">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-house-medical text-slate-400"></i>
-                        </div>
-                        <input type="text" id="roomId"
-                               placeholder="Room ID (optional)"
-                               class="w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-blue focus:bg-white font-mono text-sm shadow-inner transition-colors">
-                    </div>
-                    <div class="relative w-32">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i class="fa-solid fa-key text-slate-400"></i>
-                        </div>
-                        <input type="text" id="roomPin"
-                               placeholder="PIN (Auto)"
-                               maxlength="4"
-                               class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-medical-blue focus:bg-white text-center font-mono text-sm tracking-widest shadow-inner transition-colors">
-                    </div>
+            <!-- Modal Header -->
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/5 border border-white/10 mb-5 shadow-inner">
+                    <i class="fa-solid fa-tooth text-3xl" style="color:var(--accent); filter: drop-shadow(0 0 12px var(--accent-glow));"></i>
                 </div>
-                <div class="flex gap-3">
+                <h1 class="text-3xl font-extrabold tracking-tight text-white mb-2">Teledentistry</h1>
+                <p class="text-[13px] text-white/40 font-semibold uppercase tracking-[0.2em]">Clinical Provider</p>
+            </div>
+
+            <div class="space-y-5">
+                <!-- Room ID -->
+                <div class="relative group">
+                    <div class="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 transition-colors group-focus-within:text-white/60">
+                        <i class="fa-solid fa-hashtag text-sm"></i>
+                    </div>
+                    <input type="text" id="roomId" placeholder="Session ID (Optional)"
+                           class="pill-input pl-14 bg-white/5 border-white/10 hover:bg-white/10 focus:bg-white/10">
+                </div>
+
+                <!-- PIN -->
+                <div class="relative group">
+                    <div class="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 transition-colors group-focus-within:text-white/60">
+                        <i class="fa-solid fa-key text-sm"></i>
+                    </div>
+                    <input type="text" id="roomPin" placeholder="4-Digit PIN" maxlength="4"
+                           class="pill-input pl-14 tracking-[0.4em] text-center font-mono bg-white/5 border-white/10 hover:bg-white/10 focus:bg-white/10">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <!-- Create Button -->
                     <button id="createRoomBtn"
-                            class="flex-1 md:flex-none bg-medical-blue hover:bg-blue-600 text-white px-5 py-2.5 rounded-xl font-medium shadow-md shadow-blue-500/20 flex items-center justify-center space-x-2 text-sm transform hover:-translate-y-0.5 active:translate-y-0">
-                        <i class="fa-solid fa-plus-circle"></i>
-                        <span>Create Session</span>
+                            class="py-4 rounded-full font-bold text-sm tracking-wide text-white spring-transition hover:scale-[1.03] active:scale-[0.97] bg-white/10 border border-white/20 hover:bg-white/15">
+                        Create
                     </button>
+                    <!-- Join Button -->
                     <button id="joinRoomBtn"
-                            class="flex-1 md:flex-none bg-white border-2 border-slate-200 hover:border-medical-blue hover:bg-blue-50 text-slate-700 px-5 py-2 rounded-xl font-medium shadow-sm flex items-center justify-center space-x-2 text-sm transform hover:-translate-y-0.5 active:translate-y-0">
-                        <i class="fa-solid fa-right-to-bracket text-medical-blue"></i>
-                        <span>Join</span>
+                            class="py-4 rounded-full font-bold text-sm tracking-wide text-white spring-transition hover:scale-[1.03] active:scale-[0.97]"
+                            style="background:linear-gradient(135deg, var(--accent), hsl(calc(var(--accent-h) + 20), var(--accent-s), var(--accent-l))); shadow: 0 15px 35px -5px var(--accent-glow);">
+                        Join
                     </button>
+                </div>
+            </div>
+
+            <!-- Footer Meta -->
+            <div class="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-white/5">
+                <div class="flex items-center gap-1.5 opacity-30">
+                    <i class="fa-solid fa-shield-halved text-[10px]"></i>
+                    <span class="text-[9px] font-bold uppercase tracking-widest">Encrypted</span>
+                </div>
+                <div class="w-1 h-1 rounded-full bg-white/20"></div>
+                <div class="flex items-center gap-1.5 opacity-30">
+                    <i class="fa-solid fa-bolt text-[10px]"></i>
+                    <span class="text-[9px] font-bold uppercase tracking-widest">Broadcaster</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── Main Content ─────────────────────────────────────────────────── -->
-    <main class="flex-grow pt-[180px] sm:pt-[150px] pb-36 px-4 max-w-7xl mx-auto w-full flex flex-col space-y-6">
-
-        <!-- Video Feeds Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-
-            <!-- PC Camera Feed -->
-            <div id="pcCard" class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden flex flex-col transition-all duration-300">
-                <div class="bg-gradient-to-r from-slate-50 to-white py-3 px-5 border-b border-slate-100 flex justify-between items-center">
-                    <h2 class="font-medium text-slate-700 flex items-center space-x-2 text-sm sm:text-base">
-                        <i class="fa-solid fa-desktop text-medical-blue"></i>
-                        <span>PC Camera Feed</span>
-                    </h2>
-                    <span class="flex h-3 w-3 relative">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span id="pcIndicator" class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                    </span>
+    <!-- ── TOP NAV — Floating Pill Glass Navbar ────────────────────── -->
+    <header class="fixed top-4 left-4 right-4 z-50" style="animation:float-in 0.6s var(--spring) both 0.1s;">
+        <nav class="glass glass-reflect rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between">
+            <!-- Left: Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-white/10">
+                    <i class="fa-solid fa-tooth text-sm" style="color:var(--accent);"></i>
                 </div>
-                <div id="pcFeedPlaceholder" class="aspect-video bg-slate-900 flex items-center justify-center relative group isolate overflow-hidden w-full">
-                    <div data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 z-10 pointer-events-none bg-slate-900/60 backdrop-blur-sm">
-                        <i class="fa-solid fa-video-slash text-4xl sm:text-5xl mb-3 opacity-50 drop-shadow-lg"></i>
-                        <p class="text-sm font-medium tracking-wide">Waiting for desktop camera</p>
-                    </div>
+                <div>
+                    <h1 class="text-sm font-bold tracking-tight text-white">Teledentistry</h1>
+                    <span class="text-[10px] font-medium text-white/30 uppercase tracking-widest">Provider</span>
                 </div>
             </div>
 
-            <!-- Intraoral Camera Feed -->
-            <div id="intaoralCard" class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden flex flex-col transition-all duration-300">
-                <div class="bg-gradient-to-r from-slate-50 to-white py-3 px-5 border-b border-slate-100 flex justify-between items-center">
-                    <h2 class="font-medium text-slate-700 flex items-center space-x-2 text-sm sm:text-base">
-                        <i class="fa-solid fa-camera-rotate text-medical-blue"></i>
-                        <span>Intraoral Camera</span>
-                    </h2>
-                    <span class="flex h-3 w-3 relative">
-                      <span id="intaoralIndicator" class="relative inline-flex rounded-full h-3 w-3 bg-slate-300"></span>
+            <!-- Center: Connection Status -->
+            <div class="flex items-center gap-3">
+                <div id="connectionStatus" class="hidden items-center gap-2 glass rounded-full px-3.5 py-1.5">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
+                    <span class="text-[11px] font-semibold text-emerald-400 tracking-wide" id="statusText">Connected</span>
                 </div>
-                <div id="intaoralPlaceholder" class="aspect-video bg-slate-900 flex items-center justify-center relative group isolate overflow-hidden w-full">
-                     <div data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 z-10 pointer-events-none bg-slate-900/60 backdrop-blur-sm">
-                        <i class="fa-solid fa-usb text-4xl sm:text-5xl mb-3 opacity-50 drop-shadow-lg"></i>
-                        <p class="text-sm font-medium tracking-wide">Waiting for intraoral feed</p>
-                    </div>
+                <div id="network-monitor" class="flex items-center gap-1.5 glass rounded-full px-3 py-1.5">
+                    <div id="net-dot" class="w-2 h-2 rounded-full bg-gray-500 transition-colors duration-500"></div>
+                    <span id="net-text" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Wait...</span>
                 </div>
             </div>
 
+            <!-- Right: Controls -->
+            <div class="flex items-center gap-3">
+                <button id="darkModeToggle" class="w-9 h-9 rounded-xl glass flex items-center justify-center spring-transition hover:scale-110 active:scale-95" title="Toggle Mode">
+                    <i class="fa-solid fa-moon text-sm text-white/60"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ── HARDWARE CONTROL BAR ────────────────────────────────────── -->
+    <div class="fixed top-24 left-1/2 -translate-x-1/2 z-40 w-[90vw] max-w-2xl hardware-bar">
+        <div class="glass glass-reflect rounded-2xl p-3 flex flex-col sm:flex-row gap-3 items-center justify-between border border-white/10">
+            <div class="flex items-center gap-2 px-2 text-white/40">
+                <i class="fa-solid fa-sliders text-sm"></i>
+                <span class="text-[10px] font-bold uppercase tracking-widest">Hardware</span>
+            </div>
+            <div class="flex flex-1 gap-2 w-full">
+                <select id="cameraSelect" class="ios-select flex-1">
+                    <option value="">WebCam</option>
+                </select>
+                <select id="micSelect" class="ios-select flex-1">
+                    <option value="">Microphone</option>
+                </select>
+                <select id="intaoralSelect" class="ios-select flex-1">
+                    <option value="">Intraoral Device</option>
+                </select>
+            </div>
         </div>
+    </div>
 
-        <!-- Hardware Selection Controls (New in Overhaul) -->
-        <div class="bg-white rounded-2xl shadow-md border border-slate-100 p-5 mt-6">
-            <h3 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center space-x-2">
-                <i class="fa-solid fa-sliders text-medical-blue"></i>
-                <span>Hardware Settings</span>
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="flex flex-col space-y-1.5">
-                    <label class="text-xs font-medium text-slate-500">Camera Input</label>
-                    <select id="cameraSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-medical-blue transition-shadow appearance-none">
-                        <option value="">Default Camera</option>
-                    </select>
-                </div>
-                <div class="flex flex-col space-y-1.5">
-                    <label class="text-xs font-medium text-slate-500">Microphone Input</label>
-                    <select id="micSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-medical-blue transition-shadow appearance-none">
-                        <option value="">Default Microphone</option>
-                    </select>
-                </div>
-                <div class="flex flex-col space-y-1.5">
-                    <label class="text-xs font-medium text-slate-500">Intraoral/USB Input</label>
-                    <select id="intaoralSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-medical-blue transition-shadow appearance-none">
-                        <option value="">Auto-Detect USB</option>
-                    </select>
+    <!-- ── MAIN VIDEO LAYOUT ───────────────────────────────────────── -->
+    <main class="flex-grow flex items-center justify-center w-full h-screen relative z-10 px-4 pt-44 pb-32">
+        
+        <!-- Primary Local Video (Massive) -->
+        <section class="video-surface w-full h-full max-w-6xl relative video-main-container">
+            <div class="edge-blur"></div>
+            <div class="edge-ring"></div>
+            
+            <div id="pcFeedPlaceholder" class="w-full h-full bg-black/40 flex items-center justify-center">
+                <!-- localDentistVideoPreview ID requested, but media.js likely injects into pcFeedPlaceholder -->
+                <div data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-white/20 z-10">
+                    <i class="fa-solid fa-video-slash text-6xl mb-4"></i>
+                    <p class="text-sm font-bold uppercase tracking-[0.2em]">Awaiting Camera Input</p>
                 </div>
             </div>
+
+            <!-- Indicators overlaid on main video -->
+            <div class="absolute top-6 left-6 z-30 flex gap-2">
+                <span id="pcIndicator" class="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
+            </div>
+        </section>
+
+        <!-- Secondary Feed (Intraoral) — Hidden unless active -->
+        <div id="intaoralCard" class="hidden">
+             <!-- Required by media.js for injection -->
+             <div id="intaoralPlaceholder"></div>
+             <span id="intaoralIndicator"></span>
         </div>
 
     </main>
 
-    <!-- ── Bottom Control Panel (Frosted Glass on Mobile) ────────── -->
-    <div class="fixed bottom-0 left-0 w-full z-50 transition-all">
-        <!-- Desktop background wrapper -->
-        <div class="absolute inset-0 bg-white/80 backdrop-blur-lg border-t border-slate-200 shadow-up pb-[env(safe-area-inset-bottom)] -z-10"></div>
-        
-        <div class="max-w-4xl mx-auto px-2 py-3 sm:py-4 flex justify-around sm:justify-center items-center sm:space-x-8">
-
-            <button id="startCamerasBtn" class="flex flex-col items-center justify-center space-y-1.5 text-slate-600 hover:text-medical-blue transition-colors group">
-                <div class="bg-white group-hover:bg-blue-50 border border-slate-200 border-b-slate-300 p-3 sm:p-4 rounded-2xl transition-all shadow-sm group-hover:shadow-md transform group-active:scale-95">
-                    <i class="fa-solid fa-video text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6"></i>
-                </div>
-                <span class="text-[10px] sm:text-xs font-semibold tracking-wide">Start Cameras</span>
-            </button>
-
-            <!-- New Mic Toggle -->
-            <button id="micToggleBtn" class="flex flex-col items-center justify-center space-y-1.5 text-slate-600 hover:text-medical-blue transition-colors group">
-                <div class="bg-white group-hover:bg-blue-50 border border-slate-200 border-b-slate-300 p-3 sm:p-4 rounded-2xl transition-all shadow-sm group-hover:shadow-md transform group-active:scale-95">
-                    <i class="fa-solid fa-microphone text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6"></i>
-                </div>
-                <span class="text-[10px] sm:text-xs font-semibold tracking-wide">Toggle Mic</span>
-            </button>
-
-            <!-- New Camera Toggle -->
-            <button id="cameraToggleBtn" class="flex flex-col items-center justify-center space-y-1.5 text-slate-600 hover:text-medical-blue transition-colors group">
-                <div class="bg-white group-hover:bg-blue-50 border border-slate-200 border-b-slate-300 p-3 sm:p-4 rounded-2xl transition-all shadow-sm group-hover:shadow-md transform group-active:scale-95">
-                    <i class="fa-solid fa-video text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6"></i>
-                </div>
-                <span class="text-[10px] sm:text-xs font-semibold tracking-wide">Toggle Cam</span>
-            </button>
-
-            <!-- Toggle Flashlight -->
-            <button id="flashlightToggle" class="flex flex-col items-center justify-center space-y-1.5 text-slate-600 hover:text-yellow-600 transition-colors group">
-                <div id="flashlightBg" class="bg-white group-hover:bg-yellow-50 border border-slate-200 border-b-slate-300 p-3 sm:p-4 rounded-2xl transition-all shadow-sm group-hover:shadow-md transform group-active:scale-95">
-                    <i id="flashlightIcon" class="fa-solid fa-bolt text-xl sm:text-2xl group-hover:scale-110 transition-transform block w-6 h-6 text-center leading-6"></i>
-                </div>
-                <span class="text-[10px] sm:text-xs font-semibold tracking-wide">Flashlight</span>
-            </button>
-
-            <button id="endCallBtn" class="flex flex-col items-center justify-center space-y-1.5 text-slate-600 hover:text-red-500 transition-colors group">
-                <div class="bg-white group-hover:bg-red-50 border border-slate-200 border-b-slate-300 p-3 sm:p-4 rounded-2xl transition-all shadow-sm group-hover:shadow-md transform group-active:scale-95">
-                    <i class="fa-solid fa-phone-slash text-xl sm:text-2xl group-hover:scale-110 transition-transform text-red-400 block w-6 h-6 text-center leading-6"></i>
-                </div>
-                <span class="text-[10px] sm:text-xs font-semibold tracking-wide">End Call</span>
-            </button>
-
+    <!-- ── FLOATING CONSULTANT PIP ─────────────────────────────────── -->
+    <div id="consultantPipContainer" class="fixed top-48 right-8 z-50 w-48 h-36 sm:w-64 sm:h-48 rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-black transition-all spring-transition cursor-move flex items-center justify-center" style="display:none;">
+        <video id="consultantRemoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
+        <div class="absolute inset-0 ring-1 ring-inset ring-white/20 rounded-3xl pointer-events-none"></div>
+        <div class="absolute bottom-3 left-3 z-10 glass rounded-full px-3 py-1 text-[10px] font-bold tracking-widest text-white/90 uppercase pointer-events-none border border-white/10">
+            Consultant
         </div>
     </div>
 
-    <!-- ── Floating Consultant Remote Video PiP ────────────────── -->
-    <div id="consultantPipContainer" class="fixed bottom-24 right-6 z-50 w-40 h-32 sm:w-48 sm:h-36 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 ring-2 ring-emerald-400/40 bg-slate-900 transition-all hover:scale-105 group" style="display:none;">
-        <!-- CRITICAL: NO muted attribute — Provider must hear Consultant -->
-        <video id="consultantRemoteVideo" autoplay playsinline class="w-full h-full object-cover"></video>
-        <div class="absolute bottom-1.5 left-2 z-10 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[9px] font-semibold tracking-wide pointer-events-none flex items-center space-x-1.5">
-            <i class="fa-solid fa-stethoscope text-[8px]"></i>
-            <span>Consultant</span>
-        </div>
-        <div class="absolute top-1.5 right-1.5 z-10">
-            <span class="relative flex h-2 w-2">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
+    <!-- ── BOTTOM CONTROL BAR — Floating Glass Pill ────────────────── -->
+    <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50" id="mediaBar">
+        <div class="glass glass-reflect rounded-full px-6 py-4 flex items-center gap-6 shadow-2xl border border-white/10">
+            
+            <!-- Start/Toggle Camera -->
+            <button id="startCamerasBtn" class="media-btn group" title="Start/Stop Cameras">
+                <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+
+            <!-- Mic Toggle -->
+            <button id="micToggleBtn" class="media-btn group" title="Toggle Mic">
+                <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            </button>
+
+            <!-- Camera Privacy Toggle -->
+            <button id="cameraToggleBtn" class="media-btn group" title="Toggle Privacy">
+                <svg class="w-6 h-6 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+            </button>
+
+            <!-- Flashlight -->
+            <button id="flashlightToggle" class="media-btn group" title="Flashlight">
+                <div id="flashlightBg"></div>
+                <i id="flashlightIcon" class="fa-solid fa-bolt text-lg transition-transform group-hover:scale-110"></i>
+            </button>
+
+            <div class="w-px h-10 bg-white/10 mx-2"></div>
+
+            <!-- End Call -->
+            <button id="endCallBtn" class="media-btn end-call group" title="End Call">
+                <svg class="w-7 h-7 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -260,44 +274,37 @@
     <script src="media.js"></script>
     <script src="webrtc.js"></script>
     
-    <!-- Enhancing the indicator look over media.js direct styles -->
     <script>
-        // Observe mutations on the indicator dots to ensure they look modern 
-        // since media.js manually sets className
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(m => {
-                if(m.target.className.includes('bg-green-500')) {
-                    // It's live! Let's glow the card border
-                    if(m.target.id === 'pcIndicator') {
-                        document.getElementById('pcCard').classList.add('ring-2', 'ring-emerald-400', 'border-emerald-400');
-                    } else if (m.target.id === 'intaoralIndicator') {
-                        document.getElementById('intaoralCard').classList.add('ring-2', 'ring-emerald-400', 'border-emerald-400');
-                    }
-                } else if(m.target.className.includes('bg-gray-400')) {
-                    // It's idle
-                    if(m.target.id === 'pcIndicator') {
-                        document.getElementById('pcCard').classList.remove('ring-2', 'ring-emerald-400', 'border-emerald-400');
-                        m.target.className = 'relative inline-flex rounded-full h-3 w-3 bg-slate-300';
-                    } else if (m.target.id === 'intaoralIndicator') {
-                        document.getElementById('intaoralCard').classList.remove('ring-2', 'ring-emerald-400', 'border-emerald-400');
-                        m.target.className = 'relative inline-flex rounded-full h-3 w-3 bg-slate-300';
-                    }
-                }
+    (function() {
+        const darkToggle = document.getElementById('darkModeToggle');
+        const html = document.documentElement;
+        if (darkToggle) {
+            darkToggle.addEventListener('click', () => {
+                html.classList.toggle('dark');
             });
-        });
-        observer.observe(document.getElementById('pcIndicator'), {attributes: true, attributeFilter: ['class']});
-        observer.observe(document.getElementById('intaoralIndicator'), {attributes: true, attributeFilter: ['class']});
-    </script>
+        }
 
-    <!-- Phase 9: Draggable PiP -->
-    <script>
+        // Draggable consultant PiP
         document.addEventListener('DOMContentLoaded', () => {
-            // Make the Consultant's remote PiP draggable
-            const consultantPip = document.getElementById('consultantPipContainer');
-            if (consultantPip && typeof makeDraggable === 'function') {
-                makeDraggable(consultantPip);
+            const pip = document.getElementById('consultantPipContainer');
+            if (pip && typeof makeDraggable === 'function') {
+                makeDraggable(pip);
             }
         });
+
+        // Close entry modal function
+        window.closeEntryModal = function() {
+            const overlay = document.getElementById('entryModalOverlay');
+            const card = document.getElementById('entryModalCard');
+            if (overlay && card) {
+                card.classList.add('modal-exit');
+                overlay.classList.add('backdrop-exit');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 500);
+            }
+        };
+    })();
     </script>
 </body>
 </html>

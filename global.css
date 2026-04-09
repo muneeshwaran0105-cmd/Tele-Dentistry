@@ -1,0 +1,305 @@
+/* ── CSS Custom Properties (Theme) ───────────────────────────── */
+:root {
+    --accent-h: 217;
+    --accent-s: 91%;
+    --accent-l: 60%;
+    --accent: hsl(var(--accent-h), var(--accent-s), var(--accent-l));
+    --accent-glow: hsla(var(--accent-h), var(--accent-s), var(--accent-l), 0.35);
+    --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0a0a0f;
+    overflow-x: hidden;
+}
+
+/* ── Light mode body ─────────────────────────────────────────── */
+html:not(.dark) body {
+    background: linear-gradient(135deg, #e0e7ff 0%, #f0f4ff 50%, #e8ecf4 100%);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+html:not(.dark) ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
+/* ── Glass Base Utility (Phase 22 Specification) ───────────── */
+.glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.dark .glass {
+    background: rgba(15, 23, 42, 0.4);
+    border-color: rgba(51, 65, slate-85, 0.5);
+}
+
+/* ── iOS Reflection Effect ───────────────────────────────────── */
+.glass-reflect {
+    position: relative;
+    overflow: hidden;
+}
+.glass-reflect::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.08) 45%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.08) 55%,
+        transparent 70%
+    );
+    transition: left 0.8s var(--spring);
+    pointer-events: none;
+    z-index: 1;
+}
+.glass-reflect:hover::before {
+    left: 150%;
+}
+
+/* ── Spring Transition ───────────────────────────────────────── */
+.spring-transition {
+    transition-timing-function: var(--spring);
+    transition-duration: 400ms;
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+.fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes float-in {
+    from { opacity: 0; transform: scale(0.9) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ── Entry Modal Animations ──────────────────────────────────── */
+.modal-enter {
+    animation: modalEnter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes modalEnter {
+    from { opacity: 0; transform: scale(0.85) translateY(30px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-exit {
+    animation: modalExit 0.4s cubic-bezier(0.6, -0.28, 0.735, 0.045) forwards;
+}
+@keyframes modalExit {
+    from { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    to   { opacity: 0; transform: scale(1.05) translateY(-10px); filter: blur(8px); }
+}
+
+.backdrop-enter {
+    animation: backdropEnter 0.4s ease-out forwards;
+}
+@keyframes backdropEnter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.backdrop-exit {
+    animation: backdropExit 0.4s ease-in forwards;
+}
+@keyframes backdropExit {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+/* ── Pill Input ──────────────────────────────────────────────── */
+.pill-input {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    padding: 14px 20px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    outline: none;
+    transition: all 0.3s var(--spring);
+    width: 100%;
+}
+.pill-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+.pill-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow), inset 0 0 12px rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.09);
+}
+
+html:not(.dark) .pill-input {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.12);
+    color: #1e293b;
+}
+html:not(.dark) .pill-input::placeholder { color: rgba(0,0,0,0.35); }
+html:not(.dark) .pill-input:focus {
+    background: rgba(255,255,255,0.8);
+    border-color: var(--accent);
+}
+
+/* ── Media Control Button (Bottom Bar) ───────────────────────── */
+.media-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.3s var(--spring);
+    position: relative;
+    overflow: hidden;
+}
+.media-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -150%; width: 80%; height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255,255,255,0.08) 50%,
+        transparent 70%
+    );
+    transition: left 0.6s var(--spring);
+    pointer-events: none;
+}
+.media-btn:hover {
+    transform: scale(1.1);
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 0 20px var(--accent-glow);
+}
+.media-btn:hover::before { left: 150%; }
+.media-btn:active {
+    transform: scale(0.95);
+}
+.media-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+    position: relative;
+    z-index: 2;
+}
+.media-btn.end-call {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #f87171;
+}
+.media-btn.end-call:hover {
+    background: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+html:not(.dark) .media-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: #334155;
+}
+html:not(.dark) .media-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+/* ── Theme Color Picker ──────────────────────────────────────── */
+.color-picker-wrapper {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: transform 0.3s var(--spring);
+}
+.color-picker-wrapper:hover { transform: scale(1.15); }
+.color-picker-wrapper input[type="color"] {
+    position: absolute;
+    top: -6px; left: -6px;
+    width: 40px; height: 40px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+}
+
+/* ── Ambient Particles (Background) ──────────────────────────── */
+.ambient-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+}
+html:not(.dark) .ambient-orb { opacity: 0.06; }
+
+/* ── Video Containers & Layout Utilities ────────────────────── */
+.video-surface {
+    position: relative;
+    border-radius: 2rem;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 32px 64px -16px rgba(0,0,0,0.5);
+}
+.edge-blur {
+    position: absolute;
+    inset: 0;
+    border-radius: 2rem;
+    box-shadow: inset 0 0 0 12px rgba(0,0,0,0.4);
+    pointer-events: none;
+    z-index: 20;
+    backdrop-filter: blur(12px);
+    opacity: 0.6;
+}
+.edge-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 2rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    pointer-events: none;
+    z-index: 30;
+}
+
+/* ── Hardware Select (iOS Style) ───────────────────────────── */
+.ios-select {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px 16px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.3s var(--spring);
+    appearance: none;
+    cursor: pointer;
+}
+.ios-select:focus {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.1);
+}
+.ios-select option {
+    background: #1e293b;
+    color: #fff;
+}

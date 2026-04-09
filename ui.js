@@ -357,6 +357,47 @@ function setupSnapshot() {
 }
 
 // ---------------------------------------------------------------------------
+// 6. Entry Modal Transitions (Phase 22)
+// ---------------------------------------------------------------------------
+
+/**
+ * Smoothly closes the entry modal with a scale-up + fade + blur effect.
+ * Then reveals the main dashboard and media bar.
+ */
+window.closeEntryModal = function() {
+    const overlay = document.getElementById('entryModalOverlay');
+    const card = document.getElementById('entryModalCard');
+    const main = document.getElementById('dashboardMain');
+    const mediaBar = document.getElementById('mediaBar');
+
+    if (!overlay || !card) return;
+
+    // 1. Apply exit animations via classes
+    card.classList.add('modal-exit');
+    overlay.classList.add('backdrop-exit');
+    
+    // 2. Wait for animation to finish (400ms)
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        
+        // 3. Reveal Dashboard
+        if (main) {
+            main.style.display = 'flex';
+            main.classList.add('fade-in');
+        }
+
+        // 4. Reveal Media Bar with slide-up effect
+        if (mediaBar) {
+            mediaBar.style.display = 'block';
+            // Trigger browser reflow to ensure transition works
+            void mediaBar.offsetWidth; 
+            mediaBar.style.transform = 'translate(-50%, 0)';
+            mediaBar.style.opacity = '1';
+        }
+    }, 450);
+};
+
+// ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {

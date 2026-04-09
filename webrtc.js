@@ -217,6 +217,11 @@ function handleRoomJoined(msg) {
   showToast(`Joined room "${msg.room_id}"!`, 'success');
   const joinBtn = document.getElementById('joinRoomBtn');
   if (joinBtn) joinBtn.disabled = true;
+
+  // Phase 22: Trigger smooth UI transition
+  if (typeof window.closeEntryModal === 'function') {
+    window.closeEntryModal();
+  }
 }
 
 // ===========================================================================
