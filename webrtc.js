@@ -194,6 +194,11 @@ function handleRoomCreated(msg) {
   const joinBtn = document.getElementById('joinRoomBtn');
   if (createBtn) createBtn.disabled = true;
   if (joinBtn) joinBtn.disabled = true;
+
+  // Phase 22: Trigger smooth UI transition
+  if (typeof window.closeEntryModal === 'function') {
+    window.closeEntryModal();
+  }
 }
 
 function onJoinRoomClick() {
