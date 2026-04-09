@@ -875,13 +875,12 @@ async function startConsultantMedia() {
     const overlay = document.getElementById('cameraWaitingOverlay');
     if (overlay) overlay.style.display = 'none';
 
-    // Phase 27: Explicitly Renegotiate with all peers
+    // Phase 28: Force Unconditional Renegotiation with all peers (Rigid Requirement)
     const activePeers = Object.keys(peerConnections);
-    log(`Renegotiating with ${activePeers.length} active peers...`);
+    log(`Force-renegotiating with ${activePeers.length} active peers...`);
 
     for (const peerId of activePeers) {
         const pc = peerConnections[peerId];
-        let needsOffer = false;
 
         window.localConsultantStream.getTracks().forEach(track => {
             // Find transceiver matching this track kind
@@ -891,38 +890,30 @@ async function startConsultantMedia() {
             );
 
             if (transceiver) {
-                log(`Found existing transceiver for ${track.kind} to ${peerId}. Replacing track...`);
+                log(`Existing transceiver for ${track.kind} to ${peerId}. Replacing track...`);
                 transceiver.sender.replaceTrack(track).catch(e => warn("replaceTrack failed:", e));
-                if (transceiver.direction !== 'sendrecv') {
-                    transceiver.direction = 'sendrecv';
-                    needsOffer = true;
-                }
+                transceiver.direction = 'sendrecv'; // Keep as sendrecv
             } else {
                 log(`No transceiver for ${track.kind} on ${peerId}. Calling addTrack...`);
                 pc.addTrack(track, window.localConsultantStream);
-                needsOffer = true;
             }
         });
 
-        if (needsOffer) {
-            log(`Triggering formal renegotiation offer for ${peerId}`);
-            pc.createOffer()
-              .then(offer => pc.setLocalDescription(offer))
-              .then(() => {
-                  sendSignal({
-                      action: "relay",
-                      room_id: currentRoomId,
-                      target_id: peerId,
-                      type: "offer",
-                      sdp: pc.localDescription,
-                  });
-                  log(`Renegotiation offer sent to ${peerId}`);
-              })
-              .catch(e => warn(`Renegotiation failed for ${peerId}:`, e));
-        } else {
-            // Even if direction didn't change, we should probably send an update if tracks were replaced
-            log(`Fast-track update (no offer needed) for ${peerId}`);
-        }
+        // UNCONDITIONAL OFFER (Replacing fast-track logic per strict Phase 28 requirement)
+        log(`Executing formal renegotiation (Offer) for ${peerId}`);
+        pc.createOffer()
+          .then(offer => pc.setLocalDescription(offer))
+          .then(() => {
+              sendSignal({
+                  action: "relay",
+                  room_id: currentRoomId,
+                  target_id: peerId,
+                  type: "offer",
+                  sdp: pc.localDescription,
+              });
+              log(`Renegotiation offer sent to ${peerId}`);
+          })
+          .catch(e => warn(`Renegotiation failed for ${peerId}:`, e));
     }
 
     showToast('Camera & mic started.', 'success');
