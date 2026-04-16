@@ -332,7 +332,28 @@ function getOrCreatePeerConnection(remotePeerId) {
         return s;
       })();
       log(`[SUPERIOR] Remote track from provider ${remotePeerId}:`, event.track.kind);
-      handleRemoteTrack(event.track, stream, remotePeerId);
+      
+      let existingStreamsForPeer = Array.from(remoteStreams.values()).filter(x => x.peerId === remotePeerId);
+      let isPrimaryFound = existingStreamsForPeer.length > 0;
+      let isTrackInNewStream = existingStreamsForPeer.every(x => x.stream.id !== stream.id);
+
+      if (isPrimaryFound && isTrackInNewStream && event.track.kind === 'video') {
+          log('[SUPERIOR] Secondary intraoral track received from Provider');
+          const intraFeed = document.getElementById('intraoralVideoFeed');
+          const parentGrid = document.getElementById('videoGridContainer');
+          
+          if (intraFeed) {
+              intraFeed.srcObject = stream;
+              intraFeed.classList.remove('hidden');
+          }
+          if (parentGrid) {
+              parentGrid.classList.remove('grid-cols-1');
+              parentGrid.classList.add('grid-cols-2');
+          }
+          remoteStreams.set(stream.id, { stream, peerId: remotePeerId, type: 'intraoral' });
+      } else {
+          handleRemoteTrack(event.track, stream, remotePeerId);
+      }
     };
   }
 
@@ -375,6 +396,38 @@ function addConsultantTracksToConnection(pc) {
     }
   });
 }
+
+/**
+ * Phase 32: Intercept explicitly added intraoral hardware
+ */
+window.addIntraoralTrackToMesh = () => {
+    if (!window.localIntraoralStream) return;
+    const track = window.localIntraoralStream.getVideoTracks()[0];
+    if (!track) return;
+    
+    for (const peerId in peerConnections) {
+        const pc = peerConnections[peerId];
+        const existingTrackIds = new Set(pc.getSenders().map(s => s.track && s.track.id).filter(Boolean));
+        if (!existingTrackIds.has(track.id)) {
+            pc.addTrack(track, window.localIntraoralStream); 
+
+            // Force renegotiation to send the second video
+            pc.createOffer()
+              .then(offer => pc.setLocalDescription(offer))
+              .then(() => {
+                  sendSignal({
+                      action: 'relay', 
+                      room_id: currentRoomId, 
+                      target_id: peerId, 
+                      sender_id: localPeerId, 
+                      type: 'offer', 
+                      sdp: pc.localDescription
+                  });
+              });
+        }
+    }
+};
+
 
 /**
  * Initiator sends an offer to a specific peer.

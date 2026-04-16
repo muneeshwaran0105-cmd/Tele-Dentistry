@@ -341,12 +341,12 @@
         </aside>
 
         <!-- Center Column: Dynamic Video Grid -->
-        <section class="flex-grow h-full bg-black rounded-[2rem] overflow-hidden relative shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]" style="animation:float-in 0.8s var(--spring) both 0.3s;">
+        <section id="videoGridContainer" class="flex-grow h-full bg-black rounded-[2rem] overflow-hidden relative shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] grid grid-cols-1" style="animation:float-in 0.8s var(--spring) both 0.3s;">
             <!-- Edge blur ring effect (Phase 22 Spec) -->
             <div class="absolute inset-0 rounded-[2rem] ring-[12px] ring-black/40 pointer-events-none z-20 opacity-60"></div>
             <div class="absolute inset-0 rounded-[2rem] ring-1 ring-white/10 dark:ring-white/5 pointer-events-none z-30"></div>
             
-            <div id="dynamicVideoGrid" class="grid-1">
+            <div id="dynamicVideoGrid" class="grid-1 w-full h-full min-h-0">
                 <div id="gridEmptyState">
                     <div class="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 animate-pulse">
                         <i class="fa-solid fa-users-viewfinder text-4xl opacity-20"></i>
@@ -354,6 +354,8 @@
                     <p class="text-white/20 font-bold uppercase tracking-[0.2em] text-sm">Awaiting Participants</p>
                 </div>
             </div>
+
+            <video id="intraoralVideoFeed" class="w-full h-full object-cover p-4 rounded-[2.5rem] hidden" autoplay playsinline></video>
         </section>
 
     </main>

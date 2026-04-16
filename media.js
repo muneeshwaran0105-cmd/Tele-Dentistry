@@ -30,6 +30,7 @@ var usbStream      = null;   // MediaStream for the USB / intraoral camera
 var activeTrack    = null;   // VideoTrack used for torch control (mobile only)
 var torchOn        = false;  // Current torch state
 var camerasStarted = false;  // Guard so "Start Cameras" fires only once
+window.localIntraoralStream = null; // Phase 32: Intraoral/USB dedicated stream
 
 // ---------------------------------------------------------------------------
 // 1. Device Detection
@@ -206,63 +207,28 @@ async function startDesktopCameras() {
 }
 
 /**
- * Looks for a second video input device (USB / intraoral camera).
- * If found, starts its stream and injects it into the intraoral placeholder.
- * Safe to call repeatedly — stops the old USB stream before starting a new one.
+ * Phase 32: Populate camera dropdown for explicit Intraoral/USB Camera selection
  */
 async function detectAndStartUSBCamera() {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
     const videoInputs = devices.filter(d => d.kind === 'videoinput');
 
-    console.log(`[media.js] Found ${videoInputs.length} video input(s):`,
-      videoInputs.map(d => d.label || d.deviceId)
-    );
+    console.log(`[media.js] Found ${videoInputs.length} video input(s):`, videoInputs.map(d => d.label || d.deviceId));
 
-    // The first device is assumed to be the built-in / primary webcam.
-    // Any additional device is treated as the USB intraoral camera.
-    const usbDevice = videoInputs[1]; // undefined if only 1 camera
-
-    if (!usbDevice) {
-      // No second camera — clear the intraoral slot if one was previously shown
-      if (usbStream) {
-        usbStream.getTracks().forEach(t => t.stop());
-        usbStream = null;
-        injectVideo(intaoralPlaceholder, null);
-        setIndicator('intraoral', 'idle');
-        console.log('[media.js] USB camera disconnected — slot cleared.');
-      }
-      return;
+    const dropdown = document.getElementById('intaoralSelect');
+    if (dropdown) {
+      dropdown.innerHTML = '<option value="">Select Intraoral Camera</option>';
+      // For development robustness, allow standard PC cams too since we're just picking by ID
+      videoInputs.forEach(device => {
+        const opt = document.createElement('option');
+        opt.value = device.deviceId;
+        opt.text = device.label || `Camera ${dropdown.options.length}`;
+        dropdown.appendChild(opt);
+      });
     }
-
-    // If we already have this exact device playing, do nothing
-    if (usbStream) {
-      const currentTrack = usbStream.getVideoTracks()[0];
-      if (currentTrack?.label === usbDevice.label) return;
-
-      // Different device swapped in — stop the old stream first
-      usbStream.getTracks().forEach(t => t.stop());
-      usbStream = null;
-    }
-
-    // Request the USB camera stream by its deviceId
-    usbStream = await navigator.mediaDevices.getUserMedia({
-      video: { 
-        deviceId: { exact: usbDevice.deviceId },
-        width: { ideal: 1280, max: 1920 },
-        height: { ideal: 720, max: 1080 }
-      },
-      audio: false,
-    });
-    window.usbStream = usbStream;
-
-    injectVideo(intaoralPlaceholder, usbStream, 'Intraoral Camera');
-    setIndicator('intraoral', 'live');
-    console.log('[media.js] USB intraoral camera connected:', usbDevice.label);
-
   } catch (err) {
-    console.warn('[media.js] USB camera error:', err.message);
-    showError('Could not access USB camera. Check the connection and permissions.');
+    console.warn('[media.js] Error populating camera options:', err.message);
   }
 }
 
@@ -442,6 +408,59 @@ document.addEventListener('DOMContentLoaded', () => {
     // Remove any previous inline handler
     flashlightBtn.removeAttribute('onclick');
     flashlightBtn.addEventListener('click', handleTorchToggle);
+  }
+
+  // Phase 32: Third hardware dropdown listener
+  const intraSelect = document.getElementById('intaoralSelect');
+  if (intraSelect) {
+      intraSelect.addEventListener('change', async (e) => {
+          const selectedDeviceId = e.target.value;
+          
+          if (!selectedDeviceId) {
+              if (window.localIntraoralStream) {
+                  window.localIntraoralStream.getTracks().forEach(t => t.stop());
+              }
+              const intraFeed = document.getElementById('intraoralVideoFeed');
+              if (intraFeed) {
+                  intraFeed.srcObject = null;
+                  intraFeed.classList.add('hidden');
+              }
+              const parentGrid = document.getElementById('videoGridContainer');
+              if (parentGrid) {
+                  parentGrid.classList.remove('grid-cols-2');
+                  parentGrid.classList.add('grid-cols-1');
+              }
+              return;
+          }
+
+          try {
+              const stream = await navigator.mediaDevices.getUserMedia({
+                  video: { deviceId: { exact: selectedDeviceId } }
+              });
+              
+              window.localIntraoralStream = stream;
+              
+              const intraFeed = document.getElementById('intraoralVideoFeed');
+              if (intraFeed) {
+                  intraFeed.srcObject = stream;
+                  intraFeed.classList.remove('hidden');
+              }
+
+              const parentGrid = document.getElementById('videoGridContainer');
+              if (parentGrid) {
+                  parentGrid.classList.remove('grid-cols-1');
+                  parentGrid.classList.add('grid-cols-2');
+              }
+
+              if (typeof window.addIntraoralTrackToMesh === 'function') {
+                  window.addIntraoralTrackToMesh();
+              }
+              console.log("[media.js] Intraoral stream started.");
+          } catch (err) {
+              console.error("[media.js] Failed to capture intraoral device", err);
+              showError("Failed to start Intraoral camera.");
+          }
+      });
   }
 
   console.log('[media.js] Loaded. isMobile =', isMobileDevice());

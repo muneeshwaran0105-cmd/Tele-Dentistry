@@ -186,26 +186,21 @@
     <main class="flex-grow flex items-center justify-center w-full relative z-10 px-4 py-8">
         
         <!-- Primary Local Video (Massive) -->
-        <section class="video-surface w-full max-w-6xl aspect-video relative video-main-container">
-            <div id="pcFeedPlaceholder" class="w-full h-full bg-black/40 flex items-center justify-center">
+        <section id="videoGridContainer" class="video-surface w-full max-w-6xl aspect-video relative video-main-container grid grid-cols-1 gap-4">
+            <div id="pcFeedPlaceholder" class="w-full h-full bg-black/40 flex items-center justify-center relative rounded-2xl overflow-hidden">
                 <div id="cameraWaitingOverlay" data-overlay class="absolute inset-0 flex flex-col items-center justify-center text-white/20 z-10 bg-slate-900/60 transition-opacity duration-500">
                     <i class="fa-solid fa-video-slash text-6xl mb-4"></i>
                     <p class="text-sm font-bold uppercase tracking-[0.2em]">Awaiting Camera Input</p>
                 </div>
             </div>
 
+            <video id="intraoralVideoFeed" class="w-full h-full object-cover rounded-2xl hidden" autoplay playsinline></video>
+
             <!-- Indicators overlaid on main video -->
             <div class="absolute top-6 left-6 z-30 flex gap-2">
                 <span id="pcIndicator" class="relative inline-flex rounded-full h-3 w-3 bg-gray-400"></span>
             </div>
         </section>
-
-        <!-- Secondary Feed (Intraoral) — Hidden unless active -->
-        <div id="intaoralCard" class="hidden">
-             <!-- Required by media.js for injection -->
-             <div id="intaoralPlaceholder"></div>
-             <span id="intaoralIndicator"></span>
-        </div>
 
     </main>
 
