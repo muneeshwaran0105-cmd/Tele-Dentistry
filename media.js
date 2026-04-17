@@ -443,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
               const intraFeed = document.getElementById('intraoralVideoFeed');
               if (intraFeed) {
                   intraFeed.srcObject = stream;
+                  intraFeed.muted = true;
                   intraFeed.classList.remove('hidden');
               }
 

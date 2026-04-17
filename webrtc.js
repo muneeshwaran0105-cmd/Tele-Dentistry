@@ -305,11 +305,12 @@ function getOrCreatePeerConnection(remotePeerId) {
 
     // Phase 8: Provider receives Consultant's remote AV stream
     pc.ontrack = (event) => {
-      const stream = (event.streams && event.streams[0]) || (() => {
-        const s = new MediaStream();
-        s.addTrack(event.track);
-        return s;
-      })();
+      let stream = event.streams && event.streams[0];
+      if (!stream) {
+        if (!pc.remotePipedStream) pc.remotePipedStream = new MediaStream();
+        pc.remotePipedStream.addTrack(event.track);
+        stream = pc.remotePipedStream;
+      }
       log(`[DENTIST] Remote track from consultant ${remotePeerId}:`, event.track.kind);
       handleConsultantRemoteTrack(stream);
     };
@@ -326,11 +327,12 @@ function getOrCreatePeerConnection(remotePeerId) {
     addConsultantTracksToConnection(pc);
 
     pc.ontrack = (event) => {
-      const stream = (event.streams && event.streams[0]) || (() => {
-        const s = new MediaStream();
-        s.addTrack(event.track);
-        return s;
-      })();
+      let stream = event.streams && event.streams[0];
+      if (!stream) {
+        if (!pc.remotePipedStream) pc.remotePipedStream = new MediaStream();
+        pc.remotePipedStream.addTrack(event.track);
+        stream = pc.remotePipedStream;
+      }
       log(`[SUPERIOR] Remote track from provider ${remotePeerId}:`, event.track.kind);
       
       let existingStreamsForPeer = Array.from(remoteStreams.values()).filter(x => x.peerId === remotePeerId);
@@ -587,6 +589,7 @@ function getOrCreateVideoTile(senderId) {
   video.setAttribute('playsinline', '');
   video.playsInline = true; 
   video.autoplay = true;
+  video.muted = false; // Phase 34: explicitly ensure remote feeds are unmuted
   // DO NOT set muted here for remote feeds
   
   tile.appendChild(video);
