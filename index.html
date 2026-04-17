@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,24 +10,35 @@
         .spring-hover {
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        
+
         /* Subtle glowing accents for cards */
         .card-provider:hover .glow-bg {
-            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%); /* Blue */
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            /* Blue */
         }
+
         .card-consultant:hover .glow-bg {
-            background: radial-gradient(circle at center, rgba(168, 85, 247, 0.15) 0%, transparent 70%); /* Purple */
+            background: radial-gradient(circle at center, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+            /* Purple */
         }
+
         .card-wand:hover .glow-bg {
-            background: radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%); /* Green */
+            background: radial-gradient(circle at center, rgba(34, 197, 94, 0.15) 0%, transparent 70%);
+            /* Green */
         }
     </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+
+<body
+    class="bg-slate-950 text-white min-h-screen flex flex-col items-center justify-start md:justify-center py-12 px-6">
 
     <!-- Global Background Ambient Blurs -->
-    <div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
-    <div class="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
+    <div
+        class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none z-0">
+    </div>
+    <div
+        class="fixed bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-purple-500/5 blur-[120px] rounded-full pointer-events-none z-0">
+    </div>
 
     <!-- Header -->
     <div class="text-center z-10 flex flex-col items-center justify-center space-y-3">
@@ -38,59 +50,72 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mt-12 z-10">
 
         <!-- Card 1: Clinical Provider -->
-        <a href="dentist.html" class="card-provider bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
+        <a href="dentist.html"
+            class="card-provider bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
             <div class="glow-bg absolute inset-0 transition-colors duration-500 z-0 pointer-events-none"></div>
-            
+
             <div class="z-10 flex flex-col items-center">
                 <!-- Medical Cross in Shield SVG -->
-                <div class="bg-blue-500/10 text-blue-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-blue-500/5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                        <path d="M8 11h8"/>
-                        <path d="M12 7v8"/>
+                <div
+                    class="bg-blue-500/10 text-blue-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-blue-500/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        <path d="M8 11h8" />
+                        <path d="M12 7v8" />
                     </svg>
                 </div>
                 <h2 class="text-2xl font-medium mb-3">Clinical Provider</h2>
-                <p class="text-slate-400 text-sm leading-relaxed">Host sessions, manage hardware, and stream dual-camera feeds.</p>
+                <p class="text-slate-400 text-sm leading-relaxed">Host sessions, manage hardware, and stream dual-camera
+                    feeds.</p>
             </div>
         </a>
 
         <!-- Card 2: Consultant Dashboard -->
-        <a href="superior.html" class="card-consultant bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
+        <a href="superior.html"
+            class="card-consultant bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
             <div class="glow-bg absolute inset-0 transition-colors duration-500 z-0 pointer-events-none"></div>
-            
+
             <div class="z-10 flex flex-col items-center">
                 <!-- Layout Dashboard SVG -->
-                <div class="bg-purple-500/10 text-purple-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-purple-500/5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
+                <div
+                    class="bg-purple-500/10 text-purple-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-purple-500/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <line x1="3" y1="9" x2="21" y2="9" />
+                        <line x1="9" y1="21" x2="9" y2="9" />
                     </svg>
                 </div>
                 <h2 class="text-2xl font-medium mb-3">Consultant View</h2>
-                <p class="text-slate-400 text-sm leading-relaxed">Join remote sessions, review clinical feeds, and guide procedures.</p>
+                <p class="text-slate-400 text-sm leading-relaxed">Join remote sessions, review clinical feeds, and guide
+                    procedures.</p>
             </div>
         </a>
 
         <!-- Card 3: Mobile Wand -->
-        <a href="mobile.html" class="card-wand bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
+        <a href="mobile.html"
+            class="card-wand bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col items-center text-center spring-hover hover:scale-105 hover:bg-white/10 hover:border-white/20 hover:shadow-2xl cursor-pointer relative overflow-hidden group">
             <div class="glow-bg absolute inset-0 transition-colors duration-500 z-0 pointer-events-none"></div>
-            
+
             <div class="z-10 flex flex-col items-center">
                 <!-- Smartphone SVG -->
-                <div class="bg-green-500/10 text-green-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-green-500/5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-                        <line x1="12" y1="18" x2="12.01" y2="18"/>
+                <div
+                    class="bg-green-500/10 text-green-400 p-4 rounded-full mb-6 group-hover:scale-110 spring-hover shadow-lg shadow-green-500/5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
                     </svg>
                 </div>
                 <h2 class="text-2xl font-medium mb-3">Intraoral Wand</h2>
-                <p class="text-slate-400 text-sm leading-relaxed">Connect a mobile device as a wireless clinical camera.</p>
+                <p class="text-slate-400 text-sm leading-relaxed">Connect a mobile device as a wireless clinical camera.
+                </p>
             </div>
         </a>
 
     </div>
 
 </body>
+
 </html>
