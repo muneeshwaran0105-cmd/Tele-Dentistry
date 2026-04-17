@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
           try {
               const stream = await navigator.mediaDevices.getUserMedia({
-                  video: { deviceId: { exact: selectedDeviceId } }
+                  video: { deviceId: { exact: selectedDeviceId } }, audio: false
               });
               
               window.localIntraoralStream = stream;
