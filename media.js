@@ -79,6 +79,8 @@ function injectVideo(container, stream, label = 'Live Feed') {
   video.muted      = true;   // local preview MUST be muted for autoplay
   
   video.srcObject  = stream;
+  video.muted = true;
+  video.volume = 0;
   video.style.cssText = 'width:100%;height:100%;object-fit:cover;position:absolute;inset:0;';
 
   // Phase 25: Hide the "waiting" overlay once the video is playing
@@ -444,6 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (intraFeed) {
                   intraFeed.srcObject = stream;
                   intraFeed.muted = true;
+                  intraFeed.volume = 0;
                   intraFeed.classList.remove('hidden');
               }
 

@@ -305,6 +305,12 @@ function getOrCreatePeerConnection(remotePeerId) {
 
     // Phase 8: Provider receives Consultant's remote AV stream
     pc.ontrack = (event) => {
+      // Prevent local stream from playing in the remote video element
+      if (window.localStream && event.streams[0] && event.streams[0].id === window.localStream.id) {
+          console.warn("Caught local stream attempting to play in remote element. Blocking.");
+          return; 
+      }
+      
       let stream = event.streams && event.streams[0];
       if (!stream) {
         if (!pc.remotePipedStream) pc.remotePipedStream = new MediaStream();
@@ -327,6 +333,12 @@ function getOrCreatePeerConnection(remotePeerId) {
     addConsultantTracksToConnection(pc);
 
     pc.ontrack = (event) => {
+      // Prevent local stream from playing in the remote video element
+      if (window.localStream && event.streams[0] && event.streams[0].id === window.localStream.id) {
+          console.warn("Caught local stream attempting to play in remote element. Blocking.");
+          return; 
+      }
+      
       let stream = event.streams && event.streams[0];
       if (!stream) {
         if (!pc.remotePipedStream) pc.remotePipedStream = new MediaStream();

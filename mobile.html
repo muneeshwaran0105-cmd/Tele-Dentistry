@@ -235,6 +235,8 @@
             activeTrack = localStream.getVideoTracks()[0];
             window.localStream = localStream;
             videoEl.srcObject = localStream;
+            videoEl.muted = true;
+            videoEl.volume = 0;
             videoEl.play().catch(() => {});
         } catch (err) {
             showToast('Camera Permission Denied', 'error');
